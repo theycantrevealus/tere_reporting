@@ -1,10 +1,16 @@
-import csv
-import bson
-import pytz
-import re
-import time
-import sys
+# import csv
+# import bson
+# import pytz
+# import re
+# import time
+# import sys
 import subprocess
+import psutil
+import os
+import multiprocessing
+import numpy as np
+import itertools
+
 import pandas as pd
 import urllib.parse
 from typing import Dict, Iterable
@@ -15,80 +21,57 @@ import configparser
 
 # Function
 # =========================================================================================================================================================================
-def convert_datetime(dt_str):
-    dt = datetime.fromisoformat(dt_str)
-    local_dt = dt.astimezone()
-    return local_dt
+def write_chunk(chunk, filename):
+    np.savetxt(filename, chunk, fmt='%f')
+
+def parallel_write(array, filename, num_processes):
+    chunks = np.array_split(array, num_processes)
+    filenames = [f'{filename}_{i}' for i in range(num_processes)]
+
+    with multiprocessing.Pool() as pool:
+        pool.starmap(write_chunk, zip(chunks, filenames))
+
+    # Concatenate files
+    with open(filename, 'wb') as outfile:
+        for file in filenames:
+            with open(file, 'rb') as infile:
+                outfile.write(infile.read())
+
+def convert_datetime(dt_str: str):
+    return parser.isoparse(dt_str).astimezone()
 
 def formatted_trx_date(dt_str):
-    dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
-    return dt.strftime('%d/%m/%Y %H:%M')
+    return datetime.strptime(f'{dt_str}'.split("+")[0], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
 
 def allowed_msisdn(msisdn):
-    prefixes = ["08", "62", "81", "82", "83", "85", "628"]
-    for prefix in prefixes:
-        if msisdn.startswith(prefix) and msisdn.replace(prefix, "").isdigit():
-            return True
-    return False
+    prefixes = ("08", "62", "81", "82", "83", "85", "628")
+    return any(msisdn.startswith(prefix) and msisdn[len(prefix):].isdigit() for prefix in prefixes)
 
 def allowed_indihome_number(msisdn):
     return allowed_msisdn(msisdn) is False
 
-def format_msisdn_to_id(msisdn):
+def format_msisdn_to_id(msisdn: str) -> str:
     if msisdn:
-        msisdn_str = str(msisdn)
-        if msisdn_str.startswith('08') or msisdn_str.startswith('8'):
-            return msisdn_str.replace('08', '628', 1).replace('8', '628', 1)
+        msisdn_str = f'{msisdn}'
+        return msisdn_str.replace('08', '628', 1).replace('8', '628', 1) if msisdn_str.startswith(('08', '8')) else msisdn_str
     return msisdn
 
 def format_indihome_number_to_non_core(cust_number):
-    if cust_number and cust_number.startswith('01'):
-        return '1' + cust_number[2:]
-    return cust_number
+    return '1' + cust_number[2:] if cust_number and cust_number.startswith('01') else cust_number
 
-def msisdn_combine_format_to_id(msisdn):
+def msisdn_combine_format_to_id(msisdn) -> str:
     if allowed_msisdn(msisdn):
         return format_msisdn_to_id(msisdn)
     elif allowed_indihome_number(msisdn):
         return format_indihome_number_to_non_core(msisdn)
     else:
-        return None
-
-def check_null(target, key):
-    if key in target.keys():
-        return str(target[key])
-    else:
         return ""
 
-def iterate_df(df):
-    for index, row in df.iterrows():
-        yield row.to_dict()
-
-def chunk_process(
-        collection,
-        chunk_size: int = 1,
-        start_index: int = 0,
-        query: Dict = {},
-        projection: Dict = {}
-):
-    total_docs = collection.count_documents(query)
-    chunks = [i for i in range(start_index, total_docs, chunk_size)]
-
-    for i in range(len(chunks)):
-        num_chunks = len(chunks)
-        start = chunks[i]
-        end = chunks[i] + chunk_size if i < num_chunks - 1 else total_docs
-        print("Batch : " + str(start) + " - " + str(end))
-        yield collection.find(query, projection=projection).skip(start).limit(end)
-
-def chunk_process2(collection, chunksize=1, start_from=0, query={}, projection={}):
-    chunks = range(start_from, collection.count_documents(query), int(chunksize))
-    num_chunks = len(chunks)
-    for i in range(1,num_chunks+1):
-        if i < num_chunks:
-            yield collection.find(query, projection=projection)[chunks[i-1]:chunks[i]]
-        else:
-            yield collection.find(query, projection=projection)[chunks[i-1]:chunks.stop]
+def check_null(target, key) -> str:
+    if key in target.keys():
+        return f'{target[key]}'
+    else:
+        return ""
 
 def batch_read(
         collection,
@@ -98,16 +81,14 @@ def batch_read(
 ) -> Iterable[pd.DataFrame]:
     cursor = collection.find(query, projection=projection)
     while True:
-        batch = []
-        for _ in range(batch_size):
-            try:
-                batch.append(next(cursor))
-            except StopIteration:
-                break
+        batch = list(itertools.islice(cursor, batch_size))
         if not batch:
             break
         yield pd.DataFrame(batch)
 
+def process_batch(batch):
+    return batch.to_numpy()
+    # return np.sum(batch_numpy, axis=1)
 
 # =========================================================================================================================================================================
 
@@ -134,7 +115,8 @@ print("")
 
 
 print("File name: ", end = "")
-filename = input()
+# filename = input()
+filename = "dat.dat"
 print("")
 
 
@@ -180,6 +162,7 @@ query ={
 }
 
 projection = {
+    "_id": 0,
     "transaction_date": 1,
     "start_date": 1,
     "end_date": 1,
@@ -195,10 +178,9 @@ projection = {
     "SMS": 1,
     "UMB": 1,
     "point": 1,
-    "subscriber_brand": 1,
-    "program_regionaln": 1,
-    "cust_valuen": 1,
-    "start_daten": 1,
+    "subscriber_brand": { "$ifNull": ["$subscriber_brand", "123"] },
+    "program_regional": 1,
+    "cust_value": 1,
     "merchant_name": 1,
     "subscriber_region": 1,
     "subscriber_branch": 1,
@@ -223,94 +205,67 @@ try:
     # df = pd.DataFrame.from_records(data)
     #
     # mem_usage = sys.getsizeof(df)
-
+    fields = []
 
     with open(filename, "a") as txt_file:
         for batch in batch_read(collection, query, projection, BATCH_SIZE_PROCESS):
-            for index, line in batch.iterrows():
-                if not line["transaction_date"] == "":
-                    transaction_unformatted = str(convert_datetime(str(str(line["transaction_date"]).split(".")[0].replace(' ', 'T')))).split("+")[0]
-                    if not transaction_unformatted == "":
-                        transaction_date = str(formatted_trx_date(transaction_unformatted)) or ""
-                    else:
-                        transaction_date = ""
-                else:
-                    transaction_date = ""
+            fields = batch.columns.tolist()
+            batch_numpy = batch.to_numpy()
+            for line in batch_numpy:
+                transaction_date = ""
+                if line[fields.index('transaction_date')]:
+                    transaction_date_unformatted = convert_datetime(f'{line[fields.index('transaction_date')]}'.replace(' ', 'T').split('.')[0])
+                    transaction_date = f'{formatted_trx_date(transaction_date_unformatted)}' or ""
 
-                if not line["start_date"] == "":
-                    start_date_unformatted = str(convert_datetime(str(str(line["start_date"]).split(".")[0].replace(' ', 'T')))).split("+")[0]
-                    if not transaction_unformatted == "":
-                        start_date = str(formatted_trx_date(start_date_unformatted)) or ""
-                    else:
-                        start_date = ""
-                else:
-                    start_date = ""
+                start_date = ""
+                if line[fields.index('start_date')]:
+                    start_date_unformatted = convert_datetime(f'{line[fields.index('start_date')]}'.replace(' ', 'T').split('.')[0])
+                    start_date = f'{formatted_trx_date(start_date_unformatted)}' or ""
 
-                if not line["end_date"] == "":
-                    end_date_unformatted = str(convert_datetime(str(str(line["end_date"]).split(".")[0].replace(' ', 'T')))).split("+")[0]
-                    if not end_date_unformatted == "":
-                        end_date = str(formatted_trx_date(end_date_unformatted)) or ""
-                    else:
-                        end_date = ""
-                else:
-                    end_date = ""
+                end_date = ""
+                if line[fields.index('end_date')]:
+                    end_date_unformatted = convert_datetime(f'{line[fields.index('end_date')]}'.replace(' ', 'T').split('.')[0])
+                    end_date = f'{formatted_trx_date(end_date_unformatted)}' or ""
 
-                msisdn = msisdn_combine_format_to_id(line["msisdn"]) or ""
-                keyword = check_null(line, "keyword")
-                program_name = check_null(line, "program_name") or ""
-                program_owner = check_null(line, "program_owner") or ""
-                detail_program_owner = check_null(line, "detail_program_owner") or ""
-                created_by = check_null(line, "created_by") or ""
-                lifestyle = check_null(line, "liefstyle") or ""
-                category = check_null(line, "category") or ""
-                keyword_title = check_null(line, "keyword_title") or ""
-                SMS = check_null(line, "SMS") or ""
-                UMB = check_null(line, "UMB") or ""
-                if not line["point"] == "":
-                    point = line["point"]
-                else:
-                    point = "0"
-                subscriber_brand = check_null(line, "subscriber_brand") or ""
-                program_regional = check_null(line, "program_regional") or ""
-                cust_value = check_null(line, "cust_value") or ""
-                merchant_name = check_null(line, "merchant_name") or ""
-                subscriber_region = check_null(line, "subscriber_region") or ""
-                subscriber_branch = check_null(line, "subscriber_branch") or ""
-                channel_code = check_null(line, "channel_code") or ""
-                subsidy = check_null(line, "subsidy") or ""
-                subscriber_tier = check_null(line, "subscriber_tier") or ""
-                voucher_code = check_null(line, "voucher_code") or ""
-                allowed_IH = str(allowed_indihome_number(line["msisdn"])).lower()
-                toWrite = str(transaction_date + "|" +
-                              msisdn + "|" +
-                              keyword + "|" +
-                              program_name + "|" +
-                              program_owner + "|" +
-                              detail_program_owner + "|" +
-                              created_by + "|" +
-                              lifestyle + "|" +
-                              category + "|" +
-                              keyword_title + "|" +
-                              SMS + "|" +
-                              UMB + "|" +
-                              point + "|" +
-                              subscriber_brand + "|" +
-                              program_regional + "|" +
-                              cust_value + "|" +
-                              start_date + "|" +
-                              end_date + "|" +
-                              merchant_name + "|" +
-                              subscriber_region + "|" +
-                              subscriber_branch + "|" +
-                              channel_code + "|" +
-                              subsidy + "|" +
-                              subscriber_tier + "|" +
-                              voucher_code + "|" +
-                              allowed_IH + "\n")
-                txt_file.write(toWrite)
+                allowed_IH = f'{allowed_indihome_number(line[fields.index('msisdn')])}'.lower()
+
+                to_write = (
+                    f"{transaction_date}|"
+                    f"{line[fields.index('msisdn')]}|"
+                    f"{line[fields.index('keyword')]}|"
+                    f"{line[fields.index('program_name')]}|"
+                    f"{line[fields.index('program_owner')]}|"
+                    f"{line[fields.index('detail_program_owner')]}|"
+                    f"{line[fields.index('created_by')]}|"
+                    f"{line[fields.index('lifestyle')]}|"
+                    f"{line[fields.index('category')]}|"
+                    f"{line[fields.index('keyword_title')]}|"
+                    f"{line[fields.index('SMS')]}|"
+                    f"{line[fields.index('UMB')]}|"
+                    f"{line[fields.index('point')] or ''}|"
+                    f"{line[fields.index('subscriber_brand') or 'subscriber_branch']}|"
+                    f"{line[fields.index('program_regional')]}|"
+                    f"{line[fields.index('cust_value')]}|"
+                    f"{start_date}|"
+                    f"{end_date}|"
+                    f"{line[fields.index('merchant_name')]}|"
+                    f"{line[fields.index('subscriber_region')]}|"
+                    f"{line[fields.index('subscriber_branch')]}|"
+                    f"{line[fields.index('channel_code')]}|"
+                    f"{line[fields.index('subsidy')]}|"
+                    f"{line[fields.index('subscriber_tier')]}|"
+                    f"{line[fields.index('voucher_code')]}|"
+                    f"{allowed_IH}"
+                )
+
+                txt_file.write(to_write + "\n")
                 txt_file.flush()
 
     client.close()
+    print("===================== MEM. USAGE ========================")
+    process = psutil.Process(os.getpid())
+    mem_usage = process.memory_info().rss / (1024 * 1024)
+    print(f"Memory usage: {mem_usage:.2f} MB")
     print("===================== LINE COUNT ========================")
     subprocess.run(["wc", "-l", filename])
     print("")
