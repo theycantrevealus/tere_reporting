@@ -102,21 +102,20 @@ print("From date : ", end = "")
 # For latest python
 # parse_from = datetime.fromisoformat(input())
 # Example : "2024-10-14T17:00:00.000Z"
-parse_from = parser.isoparse(str("2024-10-14T17:00:00.000Z"))
+parse_from = parser.isoparse(str(input()))
 print("")
 
 print("To date : ", end = "")
 # For latest python
 # parse_from = datetime.fromisoformat(input())
 # Example : "2024-10-15T16:59:00.000Z"
-parse_to = parser.isoparse(str("2024-10-15T16:59:00.000Z"))
+parse_to = parser.isoparse(str(input()))
 print("")
 
 
 
 print("File name: ", end = "")
-# filename = input()
-filename = "dat.dat"
+filename = input()
 print("")
 
 
