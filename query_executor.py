@@ -77,10 +77,11 @@ def validation_keyword_point_value_rule(payload, total_point=None) -> str:
 
 def batch_read(
         collection,
-        query,
+        query: Dict = {},
+        projection: Dict = {},
         batch_size: int = 100
 ) -> Iterable[pd.DataFrame]:
-    cursor = collection.aggregate(query)
+    cursor = collection.find(query, projection=projection)
     while True:
         batch = list(itertools.islice(cursor, batch_size))
         if not batch:
@@ -90,7 +91,7 @@ def batch_read(
 # =========================================================================================================================================================================
 
 
-print("=== 0POIN MANUAL GENERATOR ===")
+print("=== FACT DETAIL MANUAL GENERATOR ===")
 print("")
 
 # Variable
@@ -98,16 +99,17 @@ print("")
 print("From date : ", end = "")
 # For latest python
 # parse_from = datetime.fromisoformat(input())
+# Example : "2024-10-14T17:00:00.000Z"
 parse_from = parser.isoparse(str(input()))
 print("")
 
 print("To date : ", end = "")
 # For latest python
 # parse_from = datetime.fromisoformat(input())
+# Example : "2024-10-15T16:59:00.000Z"
 parse_to = parser.isoparse(str(input()))
 print("")
 
-# Example : "2024-10-14T17:00:00.000Z 2024-10-15T16:59:00.000Z"
 
 
 print("File name: ", end = "")
@@ -133,7 +135,7 @@ TARGET_DIR = config['RESULT']['DIR']
 
 BATCH_SIZE_PROCESS = int(config['CONFIG']['BATCH_SIZE'])
 
-filename = TARGET_DIR + "/0POIN/" + filename
+filename = TARGET_DIR + "/" + filename
 
 process_start_time = datetime.now()
 client = MongoClient(MONGO_URI)
@@ -141,53 +143,115 @@ client = MongoClient(MONGO_URI)
 pipeline = [
     {
         "$match": {
-            "keyword": { "$in": [ "0POIN" ] },
             "transaction_date": {
                 "$gte": parse_from,
                 "$lte": parse_to
             }
         }
-    },
-    {
-        "$group": {
-            "_id": {
-                "keyword": "$keyword",
-                "msisdn": "$msisdn",
-                "isindihome": {
-                    "$cond": {
-                        "if": {
-                            "$regexMatch": {
-                                "input": "$msisdn",
-                                "regex": "^(08|62|81|82|83|85|628)+[0-9]+$"
-                            }
-                        },
-                        "then": "true",
-                        "else": "false"
-                    }
-                }
-            }
-        }
     }
 ]
+
+query ={
+    "transaction_date": {
+        "$gte": parse_from,
+        "$lte": parse_to
+    }
+}
+
 projection = {
     "_id": 0,
+    "transaction_date": 1,
+    "start_date": 1,
+    "end_date": 1,
     "msisdn": 1,
-    "keyword": 1
+    "keyword": 1,
+    "program_name": 1,
+    "program_owner": 1,
+    "detail_program_owner": 1,
+    "created_by": 1,
+    "lifestyle": 1,
+    "category": 1,
+    "keyword_title": 1,
+    "SMS": 1,
+    "UMB": 1,
+    "point": 1,
+    "subscriber_brand": { "$ifNull": ["$subscriber_brand", "123"] },
+    "program_regional": 1,
+    "cust_value": 1,
+    "merchant_name": 1,
+    "subscriber_region": 1,
+    "subscriber_branch": 1,
+    "channel_code": 1,
+    "subsidy": 1,
+    "subscriber_tier": 1,
+    "voucher_code": 1
 }
 # =========================================================================================================================================================================
 
 try:
     database = client.get_database(config['MONGO']['DATABASE'])
-    collection = database.get_collection("transaction_master")
+    collection = database.get_collection("fact_detail")
+
+    # queryExecute = collection.find(query, output_v, batch_size=10)
+    # print("======================= CURSOR ==========================")
+    # print(queryExecute.explain())
+    # print("")
+    # print("")
+
+    # data = list(queryExecute)
+    # df = pd.DataFrame.from_records(data)
+    #
+    # mem_usage = sys.getsizeof(df)
+
     with open(filename, "a") as txt_file:
-        for batch in batch_read(collection, pipeline, BATCH_SIZE_PROCESS):
+        for batch in batch_read(collection, query, projection, BATCH_SIZE_PROCESS):
             fields = batch.columns.tolist()
             batch_numpy = batch.to_numpy()
             for line in batch_numpy:
+                transaction_date = ""
+                if line[fields.index('transaction_date')]:
+                    transaction_date_unformatted = convert_datetime(f'{line[fields.index("transaction_date")]}'.replace(' ', 'T').split('.')[0])
+                    transaction_date = f'{formatted_trx_date(transaction_date_unformatted)}' or ""
+
+                start_date = ""
+                if line[fields.index('start_date')]:
+                    start_date_unformatted = convert_datetime(f'{line[fields.index("start_date")]}'.replace(' ', 'T').split('.')[0])
+                    start_date = f'{formatted_trx_date(start_date_unformatted)}' or ""
+
+                end_date = ""
+                if line[fields.index('end_date')]:
+                    end_date_unformatted = convert_datetime(f'{line[fields.index("end_date")]}'.replace(' ', 'T').split('.')[0])
+                    end_date = f'{formatted_trx_date(end_date_unformatted)}' or ""
+
+                allowed_IH = f'{allowed_indihome_number(line[fields.index("msisdn")])}'.lower()
+
                 to_write = (
-                    f"{line[0].get('msisdn', '')}|"
-                    f"{line[0].get('keyword', '')}|"
-                    f"{line[0].get('isindihome', '')}"
+                    f"{transaction_date}|"
+                    f"{line[fields.index('msisdn')]}|"
+                    f"{line[fields.index('keyword')]}|"
+                    f"{line[fields.index('program_name')]}|"
+                    f"{line[fields.index('program_owner')]}|"
+                    f"{line[fields.index('detail_program_owner')]}|"
+                    f"{line[fields.index('created_by')]}|"
+                    f"{line[fields.index('lifestyle')]}|"
+                    f"{line[fields.index('category')]}|"
+                    f"{line[fields.index('keyword_title')]}|"
+                    f"{line[fields.index('SMS')]}|"
+                    f"{line[fields.index('UMB')]}|"
+                    f"{validation_keyword_point_value_rule(line[fields.index('point')]) or ''}|"
+                    f"{line[fields.index('subscriber_brand') or 'subscriber_branch']}|"
+                    f"{line[fields.index('program_regional')]}|"
+                    f"{line[fields.index('cust_value')]}|"
+                    f"{start_date}|"
+                    f"{end_date}|"
+                    f"{line[fields.index('merchant_name')]}|"
+                    f"{line[fields.index('subscriber_region')]}|"
+                    f"{line[fields.index('subscriber_branch')]}|"
+                    f"{line[fields.index('channel_code')]}|"
+                    f"{line[fields.index('subsidy')]}|"
+                    f"{line[fields.index('subscriber_tier')]}|"
+                    f"{line[fields.index('voucher_code')]}|"
+                    f"{allowed_IH}"
                 )
 
                 txt_file.write(to_write + "\n")

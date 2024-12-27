@@ -5,7 +5,7 @@
 # import time
 # import sys
 # import psutil
-# import os
+import os
 import subprocess
 import multiprocessing
 import numpy as np
@@ -25,6 +25,10 @@ def convert_datetime(dt_str: str):
     return parser.isoparse(dt_str).astimezone()
 
 def formatted_trx_date(dt_str):
+    # dt_obj = pd.to_datetime(str(dt_str).split("+")[0], format='%Y-%m-%d %H:%M:%S')
+    # dt_obj += pd.Timedelta(hours=7)
+    # return dt_obj.strftime('%d/%m/%Y %H:%M')
+
     return datetime.strptime(f'{dt_str}'.split("+")[0], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
 
 def allowed_msisdn(msisdn):
@@ -73,7 +77,7 @@ def validation_keyword_point_value_rule(payload, total_point=None) -> str:
                     result = eligibility['point_redeemed']
         return result
     else:
-        return ""
+        return "0"
 
 def batch_read(
         collection,
@@ -94,24 +98,31 @@ def batch_read(
 print("=== FACT DETAIL MANUAL GENERATOR ===")
 print("")
 
-# Variable
-# =========================================================================================================================================================================
+
 # For latest python
 # parse_from = datetime.fromisoformat(input())
 # Example : "2024-10-14T17:00:00.000Z"
-
-# print("From date : ", end = "")
-# parse_from = parser.isoparse(str(input()))
-# print("")
-
 
 # For latest python
 # parse_from = datetime.fromisoformat(input())
 # Example : "2024-10-15T16:59:00.000Z"
 
+# Variable
+# =========================================================================================================================================================================
+# print("From date : ", end = "")
+# parse_from = parser.isoparse(str(input()))
+# print("")
+
 # print("To date : ", end = "")
 # parse_to = parser.isoparse(str(input()))
 # print("")
+
+print("Date (YYYY-MM-DD): ", end = "")
+parse_date = str(input())
+print("")
+
+date_obj = pd.to_datetime(parse_date)
+next_day = date_obj + pd.Timedelta(days=1)
 
 print("Target Collection: ", end = "")
 target_collection = input()
@@ -156,18 +167,18 @@ client = MongoClient(MONGO_URI)
 #     }
 # ]
 
-# query = {
-#     "transaction_date": {
-#         "$gte": parse_from,
-#         "$lte": parse_to
-#     }
-# }
-
 query = {
-    "_id": {
-        "$exists": True
+    "transaction_date": {
+        "$gte": parser.isoparse(f'{parse_date}T17:00:00.000Z'),
+        "$lt": parser.isoparse(f'{next_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
     }
 }
+
+# query = {
+#     "_id": {
+#         "$exists": True
+#     }
+# }
 
 projection = {
     "_id": 0,
@@ -249,8 +260,8 @@ try:
                     f"{line[fields.index('keyword_title')]}|"
                     f"{line[fields.index('SMS')]}|"
                     f"{line[fields.index('UMB')]}|"
-                    f"{validation_keyword_point_value_rule(line[fields.index('point')]) or ''}|"
-                    f"{line[fields.index('subscriber_brand') or 'subscriber_branch']}|"
+                    f"{validation_keyword_point_value_rule(line[fields.index('point')])}|"
+                    f"{line[fields.index('subscriber_brand') or '']}|"
                     f"{line[fields.index('program_regional')]}|"
                     f"{line[fields.index('cust_value')]}|"
                     f"{start_date}|"
@@ -269,6 +280,17 @@ try:
                 txt_file.flush()
 
     client.close()
+
+    # Write CTL file
+    with open(filename, "rb") as f:
+        rowCount = sum(1 for _ in f)
+
+    fileSize = os.path.getsize(filename)
+    ctlName = filename.replace(".dat", "ctl")
+    with open(ctlName, "w") as ctl_file:
+        ctl_file.write(f'{filename}|{rowCount}|{fileSize}')
+
+
     # print("===================== MEM. USAGE ========================")
     # process = psutil.Process(os.getpid())
     # mem_usage = process.memory_info().rss / (1024 * 1024)
@@ -279,6 +301,10 @@ try:
     print("")
     print("===================== SAMPLE RESULT =====================")
     subprocess.run(["tail", "-10", filename])
+    print("")
+    print("")
+    print("===================== CTL RESULT =====================")
+    subprocess.run(["cat", ctlName])
     print("")
     print("")
     print("=========================================================")
