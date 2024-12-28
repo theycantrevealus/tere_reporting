@@ -25,11 +25,11 @@ def convert_datetime(dt_str: str):
     return parser.isoparse(dt_str).astimezone()
 
 def formatted_trx_date(dt_str):
-    # dt_obj = pd.to_datetime(str(dt_str).split("+")[0], format='%Y-%m-%d %H:%M:%S')
-    # dt_obj += pd.Timedelta(hours=7)
-    # return dt_obj.strftime('%d/%m/%Y %H:%M')
+    dt_obj = pd.to_datetime(str(dt_str).split("+")[0], format='%Y-%m-%d %H:%M:%S')
+    dt_obj += pd.Timedelta(hours=7)
+    return dt_obj.strftime('%d/%m/%Y %H:%M')
 
-    return datetime.strptime(f'{dt_str}'.split("+")[0], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
+    # return datetime.strptime(f'{dt_str}'.split("+")[0], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
 
 def allowed_msisdn(msisdn):
     prefixes = ("08", "62", "81", "82", "83", "85", "628")
