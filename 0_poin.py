@@ -5,7 +5,7 @@
 # import time
 # import sys
 # import psutil
-# import os
+import os
 import subprocess
 import multiprocessing
 import numpy as np
@@ -95,27 +95,22 @@ print("")
 
 # Variable
 # =========================================================================================================================================================================
-print("From date : ", end = "")
-# For latest python
-# parse_from = datetime.fromisoformat(input())
-parse_from = parser.isoparse(str(input()))
+print("Date (YYYY-MM-DD): ", end = "")
+parse_date = str(input())
 print("")
 
-print("To date : ", end = "")
-# For latest python
-# parse_from = datetime.fromisoformat(input())
-parse_to = parser.isoparse(str(input()))
-print("")
+date_obj = pd.to_datetime(parse_date)
+last_day = date_obj - pd.Timedelta(days=1)
 
 # Example : "2024-10-14T17:00:00.000Z 2024-10-15T16:59:00.000Z"
-
 
 print("File name: ", end = "")
 filename = input()
 print("")
 
-
-print("GENERATING...")
+from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
+to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
+print(f"GENERATING...[{from_date}] - [{to_date}]")
 print("")
 print("")
 
@@ -143,8 +138,8 @@ pipeline = [
         "$match": {
             "keyword": { "$in": [ "0POIN" ] },
             "transaction_date": {
-                "$gte": parse_from,
-                "$lte": parse_to
+                "$gte": from_date,
+                "$lt": to_date,
             }
         }
     },
@@ -152,18 +147,25 @@ pipeline = [
         "$group": {
             "_id": {
                 "keyword": "$keyword",
-                "msisdn": "$msisdn",
-                "isindihome": {
-                    "$cond": {
-                        "if": {
-                            "$regexMatch": {
-                                "input": "$msisdn",
-                                "regex": "^(08|62|81|82|83|85|628)+[0-9]+$"
-                            }
-                        },
-                        "then": "true",
-                        "else": "false"
-                    }
+                "msisdn": "$msisdn"
+            }
+        }
+    },
+    {
+        "$project": {
+            "_id": 0,
+            "keyword": "$_id.keyword",
+            "msisdn": "$_id.msisdn",
+            "isindihome": {
+                "$cond": {
+                    "if": {
+                        "$regexMatch": {
+                            "input": "$_id.msisdn",
+                            "regex": "^(08|62|81|82|83|85|628)+[0-9]+$"
+                        }
+                    },
+                    "then": "false",
+                    "else": "true"
                 }
             }
         }
@@ -179,21 +181,34 @@ projection = {
 try:
     database = client.get_database(config['MONGO']['DATABASE'])
     collection = database.get_collection("transaction_master")
+
     with open(filename, "a") as txt_file:
+        txt_file.write("MSISDN|KEYWORD|ISINDIHOMENUMBER\n")
         for batch in batch_read(collection, pipeline, BATCH_SIZE_PROCESS):
             fields = batch.columns.tolist()
             batch_numpy = batch.to_numpy()
             for line in batch_numpy:
+                # print(f'{line[fields.index("msisdn")]}')
                 to_write = (
-                    f"{line[0].get('msisdn', '')}|"
-                    f"{line[0].get('keyword', '')}|"
-                    f"{line[0].get('isindihome', '')}"
+                    f'{line[fields.index("msisdn")]}|'
+                    f'{line[fields.index("keyword")]}|'
+                    f'{line[fields.index("isindihome")]}'
                 )
 
                 txt_file.write(to_write + "\n")
                 txt_file.flush()
 
     client.close()
+
+    # Write CTL file
+    with open(filename, "rb") as f:
+        rowCount = sum(1 for _ in f)
+
+    fileSize = os.path.getsize(filename)
+    ctlName = filename.replace(".dat", ".ctl")
+    with open(ctlName, "w") as ctl_file:
+        ctl_file.write(f'{filename}|{rowCount}|{fileSize}')
+
     # print("===================== MEM. USAGE ========================")
     # process = psutil.Process(os.getpid())
     # mem_usage = process.memory_info().rss / (1024 * 1024)
@@ -203,7 +218,15 @@ try:
     print("")
     print("")
     print("===================== SAMPLE RESULT =====================")
+    subprocess.run(["head", filename])
+    print("...")
+    print("...")
+    print("...")
     subprocess.run(["tail", "-10", filename])
+    print("")
+    print("")
+    print("===================== CTL RESULT =====================")
+    subprocess.run(["cat", ctlName])
     print("")
     print("")
     print("=========================================================")
