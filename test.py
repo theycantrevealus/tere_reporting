@@ -25,7 +25,11 @@ def convert_datetime(dt_str: str):
     return parser.isoparse(dt_str).astimezone()
 
 def formatted_trx_date(dt_str):
-    return datetime.strptime(f'{dt_str}'.split("+")[0], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
+    dt_obj = pd.to_datetime(str(dt_str).split("+")[0], format='%Y-%m-%d %H:%M:%S')
+    dt_obj += pd.Timedelta(hours=7)
+    return dt_obj.strftime('%d/%m/%Y %H:%M')
+
+    # return datetime.strptime(f'{dt_str}'.split("+")[0], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
 
 def allowed_msisdn(msisdn):
     prefixes = ("08", "62", "81", "82", "83", "85", "628")
@@ -61,19 +65,28 @@ def validation_keyword_point_value_rule(payload, total_point=None) -> str:
                 result = total_point
             elif 'total_redeem' in payload.get('incoming', {}):
                 result = payload['incoming']['total_redeem']
+                print(f'Poin on incoming {result}')
 
-            point_value = eligibility.get('point_value')  # Corrected key
+            # Ignore incoming total redeem if not exist
+            result = eligibility['poin_redeemed']
+
+            point_value = eligibility.get('poin_value')
+
             if point_value == 'Fixed':
-                result = eligibility['point_redeemed']
+                result = eligibility['poin_redeemed']
+                print(f'Poin on fixed {result}')
             elif point_value == 'Flexible':
                 if result <= 0:
-                    result = eligibility['point_redeemed']
+                    result = eligibility['poin_redeemed']
+                    print(f'Poin on flexible {result}')
             elif point_value == 'Fixed Multiple':
                 if result > 0:
-                    result = eligibility['point_redeemed']
+                    result = eligibility['poin_redeemed']
+                    print(f'Poin on fixed multiple {result}')
         return result
     else:
-        return ""
+        print("Eligibility key is not found in payload")
+        return "0"
 
 def batch_read(
         collection,
@@ -94,24 +107,31 @@ def batch_read(
 print("=== FACT DETAIL MANUAL GENERATOR ===")
 print("")
 
-# Variable
-# =========================================================================================================================================================================
+
 # For latest python
 # parse_from = datetime.fromisoformat(input())
 # Example : "2024-10-14T17:00:00.000Z"
-
-print("From date : ", end = "")
-parse_from = parser.isoparse(str(input()))
-print("")
-
 
 # For latest python
 # parse_from = datetime.fromisoformat(input())
 # Example : "2024-10-15T16:59:00.000Z"
 
-print("To date : ", end = "")
-parse_to = parser.isoparse(str(input()))
+# Variable
+# =========================================================================================================================================================================
+# print("From date : ", end = "")
+# parse_from = parser.isoparse(str(input()))
+# print("")
+
+# print("To date : ", end = "")
+# parse_to = parser.isoparse(str(input()))
+# print("")
+
+print("Date (YYYY-MM-DD): ", end = "")
+parse_date = str(input())
 print("")
+
+date_obj = pd.to_datetime(parse_date)
+last_day = date_obj - pd.Timedelta(days=1)
 
 print("Target Collection: ", end = "")
 target_collection = input()
@@ -143,6 +163,7 @@ BATCH_SIZE_PROCESS = int(config['CONFIG']['BATCH_SIZE'])
 filename = TARGET_DIR + "/" + filename
 
 process_start_time = datetime.now()
+print(f'START TIME : {process_start_time}')
 client = MongoClient(MONGO_URI)
 
 # pipeline = [
@@ -158,12 +179,12 @@ client = MongoClient(MONGO_URI)
 
 query = {
     "transaction_date": {
-        "$gte": parse_from,
-        "$lte": parse_to
+        "$gte": parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z'),
+        "$lt": parser.isoparse(f'{parse_date}T17:00:00.000Z'),
     }
 }
 
-# query = {
+# query = {`
 #     "_id": {
 #         "$exists": True
 #     }
@@ -249,7 +270,7 @@ try:
                     f"{line[fields.index('keyword_title')]}|"
                     f"{line[fields.index('SMS')]}|"
                     f"{line[fields.index('UMB')]}|"
-                    f"{validation_keyword_point_value_rule(line[fields.index('point')]) or ''}|"
+                    f"{validation_keyword_point_value_rule(line[fields.index('point')])}|"
                     f"{line[fields.index('subscriber_brand') or '']}|"
                     f"{line[fields.index('program_regional')]}|"
                     f"{line[fields.index('cust_value')]}|"
@@ -271,7 +292,7 @@ try:
     client.close()
 
     # Write CTL file
-    with open(filename, "rbU") as f:
+    with open(filename, "rb") as f:
         rowCount = sum(1 for _ in f)
 
     fileSize = os.path.getsize(filename)
@@ -290,6 +311,14 @@ try:
     print("")
     print("===================== SAMPLE RESULT =====================")
     subprocess.run(["tail", "-10", filename])
+    print("")
+    print("")
+    print("===================== CTL RESULT =====================")
+    subprocess.run(["cat", ctlName])
+    print("")
+    print("")
+    print("===================== POINT RESULT =====================")
+    subprocess.run(["awk", "-F", "|", "{totalPoin += $13}END{print totalPoin}", filename])
     print("")
     print("")
     print("=========================================================")

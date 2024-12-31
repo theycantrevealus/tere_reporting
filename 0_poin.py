@@ -104,7 +104,7 @@ last_day = date_obj - pd.Timedelta(days=1)
 
 # Example : "2024-10-14T17:00:00.000Z 2024-10-15T16:59:00.000Z"
 
-print("File name: ", end = "")
+print("Custom file name: (Default : TRX_0POIN_<YYYYMMDD>.csv | If defined : TRX_0POIN_<YYYYMMDD><custom_name>.csv)", end = "")
 filename = input()
 print("")
 
@@ -128,7 +128,9 @@ TARGET_DIR = config['RESULT']['DIR']
 
 BATCH_SIZE_PROCESS = int(config['CONFIG']['BATCH_SIZE'])
 
-filename = TARGET_DIR + "/0POIN/" + filename
+# If set then it will append to file name, if not then will take the default name
+fileNameOnly = f'TRX_0POIN_{parse_date.replace("-","")}{filename}.csv'
+targetFilename = f'{TARGET_DIR}/0POIN/TRX_0POIN_{parse_date.replace("-","")}{filename}.csv'
 
 process_start_time = datetime.now()
 client = MongoClient(MONGO_URI)
@@ -182,7 +184,7 @@ try:
     database = client.get_database(config['MONGO']['DATABASE'])
     collection = database.get_collection("transaction_master")
 
-    with open(filename, "a") as txt_file:
+    with open(targetFilename, "a") as txt_file:
         txt_file.write("MSISDN|KEYWORD|ISINDIHOMENUMBER\n")
         for batch in batch_read(collection, pipeline, BATCH_SIZE_PROCESS):
             fields = batch.columns.tolist()
@@ -201,36 +203,36 @@ try:
     client.close()
 
     # Write CTL file
-    with open(filename, "rb") as f:
+    with open(targetFilename, "rb") as f:
         rowCount = sum(1 for _ in f)
 
-    fileSize = os.path.getsize(filename)
-    ctlName = filename.replace(".dat", ".ctl")
+    fileSize = os.path.getsize(targetFilename)
+    ctlName = targetFilename.replace(".csv", ".ctl")
     with open(ctlName, "w") as ctl_file:
-        ctl_file.write(f'{filename}|{rowCount}|{fileSize}')
+        ctl_file.write(f'{fileNameOnly}|{rowCount}|{fileSize}')
 
     # print("===================== MEM. USAGE ========================")
     # process = psutil.Process(os.getpid())
     # mem_usage = process.memory_info().rss / (1024 * 1024)
     # print(f"Memory usage: {mem_usage:.2f} MB")
     print("===================== LINE COUNT ========================")
-    subprocess.run(["wc", "-l", filename])
+    subprocess.run(["wc", "-l", targetFilename])
     print("")
     print("")
-    print("===================== SAMPLE RESULT =====================")
-    subprocess.run(["head", filename])
+    print("===================== SAMPLE RESULT =====================\033[93m")
+    subprocess.run(["head", targetFilename])
     print("...")
     print("...")
     print("...")
-    subprocess.run(["tail", "-10", filename])
+    subprocess.run(["tail", "-10", targetFilename])
     print("")
     print("")
-    print("===================== CTL RESULT =====================")
+    print("\033[0m===================== CTL RESULT =====================")
     subprocess.run(["cat", ctlName])
     print("")
     print("")
     print("=========================================================")
-    print("--- DONE at [%s] seconds ---" % (datetime.now() - process_start_time))
+    print("\033[92m--- DONE at [%s] seconds ---\033[0m" % (datetime.now() - process_start_time))
     print("")
     print("")
 
