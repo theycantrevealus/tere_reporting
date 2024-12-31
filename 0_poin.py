@@ -95,7 +95,7 @@ print("")
 
 # Variable
 # =========================================================================================================================================================================
-print("Date (YYYY-MM-DD): ", end = "")
+print("Date (YYYY-MM-DD) => ", end = "")
 parse_date = str(input())
 print("")
 
@@ -104,7 +104,7 @@ last_day = date_obj - pd.Timedelta(days=1)
 
 # Example : "2024-10-14T17:00:00.000Z 2024-10-15T16:59:00.000Z"
 
-print("Custom file name: (Default : TRX_0POIN_<YYYYMMDD>.csv | If defined : TRX_0POIN_<YYYYMMDD><custom_name>.csv)", end = "")
+print("Custom file name (Default : TRX_0POIN_<YYYYMMDD>.csv | If defined : TRX_0POIN_<YYYYMMDD><custom_name>.csv) => ", end = "")
 filename = input()
 print("")
 
