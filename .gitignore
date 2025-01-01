@@ -2,4 +2,6 @@
 venv
 .env
 report
+file
 **/*.zip
+__pycache__
