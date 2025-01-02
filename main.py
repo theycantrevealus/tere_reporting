@@ -1,5 +1,8 @@
-import schedule
 import time
+import schedule
+import pandas as pd
+# from datetime import *
+from dateutil import parser
 from modules.logging import Logging, LoggingType
 from modules.file import File
 from modules.mongo import Mongo
@@ -46,7 +49,19 @@ def example_json_to_csv():
         'data.keyword'
     ])
 
+def generate_fact_detail(parse_date: str):
+    from modules.report_fact_detail import ReportFactDetail
+    date_obj = pd.to_datetime(parse_date)
+    last_day = date_obj - pd.Timedelta(days=1)
 
+    from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
+    to_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T23:00:00.000Z')
+    # to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
+
+    fact_detail = ReportFactDetail()
+    fact_detail.produce_data(from_date,to_date)
+
+generate_fact_detail("2024-10-15")
 
 
 
