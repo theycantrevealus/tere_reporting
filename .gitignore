@@ -5,3 +5,4 @@ report
 file
 **/*.zip
 __pycache__
+testing.py
