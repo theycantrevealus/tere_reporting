@@ -55,8 +55,7 @@ def generate_fact_detail(parse_date: str):
     last_day = date_obj - pd.Timedelta(days=1)
 
     from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
-    to_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T23:00:00.000Z')
-    # to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
+    to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
 
     fact_detail = ReportFactDetail()
     fact_detail.produce_data(from_date,to_date)
@@ -67,10 +66,10 @@ generate_fact_detail("2024-10-15")
 
 # Schedule tasks
 # Update configuration every seconds
-schedule.every(1).seconds.do(get_configuration)
+# schedule.every(1).seconds.do(get_configuration)
 # schedule.every(10).seconds.do(run_process, '0POIN')
 # schedule.every().days.on("06:00").do(run_process, '0POIN')
 
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+# while True:
+#     schedule.run_pending()
+#     time.sleep(1)

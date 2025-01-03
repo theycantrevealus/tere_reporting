@@ -4,6 +4,7 @@ from modules.logging import Logging, LoggingType
 from dateutil import parser
 from datetime import *
 import subprocess
+import pandas as pd
 import os
 
 class ReportFactDetail:
@@ -25,7 +26,9 @@ class ReportFactDetail:
 
     def formatted_trx_date(self, dt_str):
         """ Format given time as required by BI FACT DETAIL """
-        return datetime.strptime(f'{dt_str}'.split("+")[0], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
+        dt_obj = pd.to_datetime(str(dt_str).split("+")[0], format='%Y-%m-%d %H:%M:%S')
+        dt_obj += pd.Timedelta(hours=7)
+        return dt_obj.strftime('%d/%m/%Y %H:%M')
 
     def allowed_msisdn(self, msisdn):
         """ Check given string format is valid msisdn or not """
@@ -725,7 +728,7 @@ class ReportFactDetail:
                     if line[fields.index('end_date')]:
                         end_date_unformatted = self.convert_datetime(f'{line[fields.index("end_date")]}'.replace(' ', 'T').split('.')[0])
                         end_date = f'{self.formatted_trx_date(end_date_unformatted)}' or ""
-                    self.logging.log(LoggingType.INFO, f"Writing {line[fields.index('msisdn')]}")
+                    # self.logging.log(LoggingType.INFO, f"Writing {line[fields.index('msisdn')]}")
                     to_write = (
                         f"{transaction_date}|"
                         f"{line[fields.index('msisdn')]}|"
@@ -775,14 +778,14 @@ class ReportFactDetail:
 
 
         tabular_result_tab = 25
+        self.logging.separator(LoggingType.GENERAL)
+        ctl_cat = subprocess.run(["cat", ctl_name], capture_output=True, text=True)
+        self.logging.log(LoggingType.SUCCESS, f"{"Control file".ljust(20, " ")}: {ctl_cat.stdout}", tabular_result_tab)
 
         linecount = subprocess.run(["wc", "-l", target_file_name], capture_output=True, text=True)
-        self.logging.log(LoggingType.SUCCESS, f"Line Count : {linecount.stdout}", tabular_result_tab)
+        self.logging.log(LoggingType.SUCCESS, f"{"Line Count".ljust(20, " ")}: {linecount.stdout}", tabular_result_tab)
 
-        ctl_cat = subprocess.run(["cat", ctl_name], capture_output=True, text=True)
-        self.logging.log(LoggingType.SUCCESS, f"CTL : {ctl_cat.stdout}", tabular_result_tab)
-
-        self.logging.log(LoggingType.SUCCESS, "SAMPE RESULT : ", tabular_result_tab)
+        self.logging.log(LoggingType.SUCCESS, "Sample Result".ljust(20, " "), tabular_result_tab)
 
         first_line = subprocess.run(["head", "-10", target_file_name], capture_output=True, text=True)
         output_f_lines = first_line.stdout.splitlines()
@@ -794,5 +797,5 @@ class ReportFactDetail:
         for lline in output_l_lines:
             self.logging.log(LoggingType.SUCCESS, f"${lline}", tabular_result_tab)
 
-
-        self.logging.log(LoggingType.SUCCESS, "DONE at [%s]" % (datetime.now() - process_start_time), tabular_result_tab)
+        self.logging.separator(LoggingType.GENERAL)
+        self.logging.log(LoggingType.SUCCESS, f"{"Execution time".ljust(20, " ")}: {(datetime.now() - process_start_time)}", tabular_result_tab)
