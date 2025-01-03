@@ -8,6 +8,13 @@ Run following command to install all requirements
   pip install -r /project_root_path/requirements.txt
 ```
 
+### Using Virtual Environment
+```shell
+  python3 -m venv <root_project>/venv
+
+  source <root_project>/venv/bin/activate
+```
+
 ### Environment Configuration
 Create `.env` file contains following field
 ```env
@@ -30,8 +37,8 @@ DIR=./report
 ```
 
 ## How to Operate
-### Fact Detail Generator
-System will prompt report period ( `from_date` `to_date`) and then target file name. File will store into `DIR` target as configured on `.env` file at `RESULT` section
+```shell
 
-### 0POIN (DCI) Generator
-System will prompt report period ( `from_date` `to_date`) and then target file name. File will store into `DIR` target as configured on `.env` file at `RESULT` section
+    ./venv/bin/python3 index.py
+
+```
