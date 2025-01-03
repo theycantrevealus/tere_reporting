@@ -1,12 +1,18 @@
 """ OPERATION CENTRALIZED MONITORING TOOLS """
 import time
 import sys
-import multiprocessing
-# import curses
+# import multiprocessing
+import curses
 # import pandas as pd
 # from dateutil import parser
 # from modules.report_fact_detail import ReportFactDetail
 from modules.logging import Logging, LoggingType
+
+class CursorPosition:
+    """ Shell cursor """
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
 class Unbuffered(object):
     """ Clear buffer """
@@ -31,16 +37,12 @@ class Main:
     def __init__(self):
         sys.stdout = Unbuffered(sys.stdout)
 
-        # self.stdscr = curses.initscr()
-        # self.stdscr.refresh()
-        # self.stdscr.clear()
-        # curses.noecho()
-        # curses.cbreak()
+        self.stdscr = curses.initscr()
+        curses.noecho()
+        curses.cbreak()
 
         # Initialize all tool class
         self.logger = Logging()
-
-        self.i = 0
         self.option_caption = [
             'Quit',
             'Application Manual',
@@ -55,73 +57,126 @@ class Main:
 
     def run(self):
         """ RUN """
-        self.show_menu()
-        while self.i < len(self.option_caption):
-            selected= f"{str(self.i)} ) {self.result_lists[self.i]['title']}"
-            print (selected)
-            self.i += 1
-
-
         while True:
-            try:
-                titlenumber = int(input('Enter number of the menu you want to choose: '))
-                if titlenumber != 0:
-                    userchoice=titlenumber
-                    print('You choose: ' + str(userchoice) + ') ' + str(self.result_lists[userchoice]['title']))
-                    if self.confirmation('Continue process? [y/n]: '):
+            self.stdscr.clear()
+            self.show_menu()
+            self.stdscr.refresh()
 
-                        p = multiprocessing.Process(target=self.background_processor)
-                        p.daemon = True  # Set as daemon
-                        p.start()
+            # titlenumber = int(self.reader())
+            titlenumber = self.get_number()
 
-                        continue
-                    else:
-                        continue
+            if titlenumber != 0:
+                userchoice = titlenumber
+                if(userchoice > len(self.result_lists) - 1):
+                    self.run()
                 else:
-                    print('Quit application')
-                    break
+                    self.printer(f"You choose: {str(userchoice)}) {str(self.result_lists[userchoice]['title'])}")
+                    response = self.get_yes_no()
+                    if(response == 'y'):
+                        self.printer('Press any key to continue.(Y)')
 
-            except ValueError:
-                continue
+                        #                 p = multiprocessing.Process(target=self.background_processor)
+                        #                 p.daemon = True  # Set as daemon
+                        #                 p.start()
 
-        print('See you later!', flush=True)
+                    else:
+                        self.printer('Press any key to continue.(N)')
+
+                    self.stdscr.getch()
+                    self.printer('Press any key to continue.')
+            else:
+                self.printer('Quit application')
+                break
+
+            self.stdscr.refresh()
+
 
     def show_menu(self):
         """ Show application menu """
-        print("*********************************************************")
-        print("**  Welcome to OPERATION CENTRALIZED MONITORING TOOLS  **")
-        print("*********************************************************")
+        header = [
+            "*********************************************************",
+            "**  Welcome to OPERATION CENTRALIZED MONITORING TOOLS  **",
+            "*********************************************************"
+        ]
+        i = 0
+        while i < len(self.option_caption):
+            selected= f"{str(i)} ) {self.result_lists[i]['title']}"
+            header.append(selected)
+            i += 1
 
+        header.append("*********************************************************\n")
 
-    def confirmation(self, prompt):
-        """ Confirmation """
-        while True:
-            answer = input(prompt).upper()
-            if answer == 'Y':
-                return True
-            if answer == 'N':
-                return False
-            print('Invalid')
+        self.stdscr.addstr(0, 0, "\n".join(header))
+
 
     def background_processor(self):
         """ Background process manager """
-        print("")
         while True:
             time.sleep(1)
 
-    # def cleanup(self):
-    #     """ What should I said ??? """
-    #     curses.nocbreak()
-    #     self.stdscr.keypad(False)
-    #     curses.echo()
-    #     curses.endwin()
+
+    def get_yes_no(self):
+        """ Confirmation """
+        while True:
+            self.printer("Enter (y/n): ")
+            self.stdscr.refresh()
+            user_input = self.stdscr.getstr().decode().lower()
+            if user_input in ['y', 'n']:
+                return user_input
+            self.printer("Invalid input. Please enter 'y' or 'n'.")
+            self.stdscr.refresh()
+            # self.stdscr.getch()
+
+    def get_number(self):
+        """ Listen input """
+        curses.echo()
+        result = ""
+        while True:
+            self.printer_l(f"Enter number ({result}): ")
+            self.stdscr.refresh()
+            c = self.stdscr.getch()
+            if c == ord('\n'):
+                if(result == ''):
+                    self.stdscr.addstr(self.current_cursor().y, 0, " " * 80)
+                else:
+                    return int(result)
+            elif c == 127:  # Backspace
+                result = result[:-1]
+            elif c >= 48 and c <= 57:  # 0-9
+                result += chr(c)
+            self.stdscr.addstr(self.current_cursor().y, 0, " " * 80)
+            self.stdscr.refresh()
+
+    def printer_l(self, word):
+        """ Custom print for cursor current line """
+        self.stdscr.addstr(self.current_cursor().y, 0, f"{word}")
+
+    def printer(self, word):
+        """ Custom print for cursor """
+        self.stdscr.addstr(self.current_cursor().y + 1, 0, f"{word}")
+
+    def reader(self):
+        """ Custom reader for cursor """
+        return self.stdscr.getstr(self.current_cursor().y + 1, 0).decode()
+
+    def current_cursor(self):
+        """ Cursor definition """
+        y, x = self.stdscr.getyx()
+        return CursorPosition(x, y)
+
+    def cleanup(self):
+        """ Cursor cleanup """
+        curses.nocbreak()
+        self.stdscr.keypad(False)
+        curses.echo()
+        curses.endwin()
 
 
 if __name__ == "__main__":
     main = Main()
-    main.run()
+    # main.run()
 
-    # try:
-    #     main.run()
-    # finally:
-    #     main.cleanup()
+    try:
+        main.run()
+    finally:
+        main.cleanup()
