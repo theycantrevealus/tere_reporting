@@ -6,3 +6,4 @@ file
 **/*.zip
 __pycache__
 testing.py
+*/*.log

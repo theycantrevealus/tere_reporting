@@ -6,7 +6,7 @@ from pymongo import MongoClient
 from typing import Dict, Iterable
 import pandas as pd
 
-from modules.logging import LoggingType
+from modules.logger import Logger
 
 class QueryType(str, Enum):
     FIND = "FIND"
@@ -14,13 +14,13 @@ class QueryType(str, Enum):
 
 class Mongo:
     def __init__(self, database, collection, batch_size = 100):
-        from modules.logging import Logging
+        from modules.logger import Logger
 
         config = configparser.ConfigParser()
         config.read('.env')
         environment = config['ENVIRONMENT']['TARGET']
 
-        self.Logging = Logging()
+        self.__log = Logger()
         if environment == 'development':
             self.connection_string = "mongodb://" + config['MONGO']['HOST'] + "/"
         else:
@@ -34,11 +34,11 @@ class Mongo:
 
     def restore(self, path):
         from modules.file import File
-        self.Logging.log(LoggingType.INFO, 'Restore data')
+        self.__log.info( 'Restore data')
         file_instance = File()
         df = file_instance.read_line_json(path)
         self.collection.insert_many(df.to_dict(orient='records'))
-        self.Logging.log(LoggingType.SUCCESS, 'Restore finished')
+        self.__log.info( 'Restore finished')
 
 
     def batch_read(

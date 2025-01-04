@@ -1,6 +1,6 @@
+""" What should I said ??? """
 from modules.mongo import Mongo, QueryType
-from tabulate import tabulate
-from modules.logging import Logging, LoggingType
+# from tabulate import tabulate
 from dateutil import parser
 from datetime import *
 import subprocess
@@ -8,14 +8,16 @@ import pandas as pd
 import os
 
 class ReportFactDetail:
+    """ What should I said ??? """
     def __init__(self):
-        self.logging = Logging()
+        from modules.logger import Logger
+        self.__log = Logger()
 
         # Create connection
         try:
             self.mongo = Mongo('SLRevamp2', 'transaction_master')
         except Exception as e:
-            self.logging.log(LoggingType.ERROR, f'{e}')
+            self.__log.exception(f'{e}')
 
     def convert_datetime(self, dt_str: str):
         """ Convert given time with timezone """
@@ -66,7 +68,7 @@ class ReportFactDetail:
         """ Query transaction_master joining transaction_master_detail """
 
         process_start_time = datetime.now()
-        self.logging.log(LoggingType.INFO, f"Process start at {process_start_time}")
+        self.__log.info(f"Process start at {process_start_time}")
         pipeline = [
             {
                 "$match": {
@@ -704,7 +706,7 @@ class ReportFactDetail:
             }
         ]
 
-        self.logging.log(LoggingType.INFO, "Fetching data")
+        self.__log.info("Fetching data")
 
         # TODO : Configurable target folder
         filename = f"poin_fact_report_detail_{self.format_file_name(end_date)}.dat"
@@ -728,7 +730,7 @@ class ReportFactDetail:
                     if line[fields.index('end_date')]:
                         end_date_unformatted = self.convert_datetime(f'{line[fields.index("end_date")]}'.replace(' ', 'T').split('.')[0])
                         end_date = f'{self.formatted_trx_date(end_date_unformatted)}' or ""
-                    # self.logging.log(LoggingType.INFO, f"Writing {line[fields.index('msisdn')]}")
+                    # self.__log.info(f"Writing {line[fields.index('msisdn')]}")
                     to_write = (
                         f"{transaction_date}|"
                         f"{line[fields.index('msisdn')]}|"
@@ -763,8 +765,8 @@ class ReportFactDetail:
 
         self.mongo.client.close()
 
-        self.logging.log(LoggingType.SUCCESS, "Report write finished")
-        self.logging.log(LoggingType.INFO, "Generating control file")
+        self.__log.info("Report write finished")
+        self.__log.info("Generating control file")
         extension = filename.rsplit('.', maxsplit=1)[-1]
         with open(target_file_name, "rb") as f:
             row_count = sum(1 for _ in f)
@@ -774,28 +776,28 @@ class ReportFactDetail:
             with open(ctl_name, "w") as ctl_file:
                 ctl_file.write(f'{filename}|{row_count}|{file_size}')
 
-        self.logging.log(LoggingType.SUCCESS, "Control file write finished")
+        self.__log.info("Control file write finished")
 
 
         tabular_result_tab = 25
-        self.logging.separator(LoggingType.GENERAL)
+        self.__log.separator()
         ctl_cat = subprocess.run(["cat", ctl_name], capture_output=True, text=True)
-        self.logging.log(LoggingType.SUCCESS, f"{"Control file".ljust(20, " ")}: {ctl_cat.stdout}", tabular_result_tab)
+        self.__log.info(f"{"Control file".ljust(20, " ")}: {ctl_cat.stdout}", tabular_result_tab)
 
         linecount = subprocess.run(["wc", "-l", target_file_name], capture_output=True, text=True)
-        self.logging.log(LoggingType.SUCCESS, f"{"Line Count".ljust(20, " ")}: {linecount.stdout}", tabular_result_tab)
+        self.__log.info( f"{"Line Count".ljust(20, " ")}: {linecount.stdout}", tabular_result_tab)
 
-        self.logging.log(LoggingType.SUCCESS, "Sample Result".ljust(20, " "), tabular_result_tab)
+        self.__log.info("Sample Result".ljust(20, " "), tabular_result_tab)
 
         first_line = subprocess.run(["head", "-10", target_file_name], capture_output=True, text=True)
         output_f_lines = first_line.stdout.splitlines()
         for fline in output_f_lines:
-            self.logging.log(LoggingType.SUCCESS, f"${fline}", tabular_result_tab)
+            self.__log.info(f"${fline}", tabular_result_tab)
 
         last_line = subprocess.run(["tail", "-10", target_file_name], capture_output=True, text=True)
         output_l_lines = last_line.stdout.splitlines()
         for lline in output_l_lines:
-            self.logging.log(LoggingType.SUCCESS, f"${lline}", tabular_result_tab)
+            self.__log.info(f"${lline}", tabular_result_tab)
 
-        self.logging.separator(LoggingType.GENERAL)
-        self.logging.log(LoggingType.SUCCESS, f"{"Execution time".ljust(20, " ")}: {(datetime.now() - process_start_time)}", tabular_result_tab)
+        self.__log.separator()
+        self.__log.info(f"{"Execution time".ljust(20, " ")}: {(datetime.now() - process_start_time)}", tabular_result_tab)

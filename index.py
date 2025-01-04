@@ -1,12 +1,12 @@
 """ OPERATION CENTRALIZED MONITORING TOOLS """
-import time
+# import time
 import sys
-# import multiprocessing
+import multiprocessing
 import curses
-# import pandas as pd
-# from dateutil import parser
-# from modules.report_fact_detail import ReportFactDetail
-from modules.logging import Logging, LoggingType
+from dateutil import parser
+import pandas as pd
+from modules.report_fact_detail import ReportFactDetail
+# from modules.logging import Logging, LoggingType
 
 class CursorPosition:
     """ Shell cursor """
@@ -42,7 +42,7 @@ class Main:
         curses.cbreak()
 
         # Initialize all tool class
-        self.logger = Logging()
+        # self.logger = Logging()
         self.option_caption = [
             'Quit',
             'Application Manual',
@@ -50,10 +50,13 @@ class Main:
             'Report [MANUAL] - Fact Detail',
             'Report [MANUAL] - DCI 0POIN',
             'Report [AUTO]   - Fact Detail',
-            'Report [AUTO]   - DCI 0POIN'
+            'Report [AUTO]   - DCI 0POIN',
+            'Multiprocess'
         ]
         self.result_lists = [{'title': str(i)} for i in self.option_caption]
-        # self.show_menu()
+
+        self.queue = multiprocessing.Queue()
+
 
     def run(self):
         """ RUN """
@@ -73,17 +76,16 @@ class Main:
                     self.printer(f"You choose: {str(userchoice)}) {str(self.result_lists[userchoice]['title'])}")
                     response = self.get_yes_no()
                     if(response == 'y'):
+                        p = multiprocessing.Process(target=self.background_processor(userchoice), args=(self.queue,))
+                        p.start()
+                        p.join()
+                        # self.printer(self.queue.get())
                         self.printer('Press any key to continue.(Y)')
-
-                        #                 p = multiprocessing.Process(target=self.background_processor)
-                        #                 p.daemon = True  # Set as daemon
-                        #                 p.start()
 
                     else:
                         self.printer('Press any key to continue.(N)')
 
                     self.stdscr.getch()
-                    self.printer('Press any key to continue.')
             else:
                 self.printer('Quit application')
                 break
@@ -109,10 +111,12 @@ class Main:
         self.stdscr.addstr(0, 0, "\n".join(header))
 
 
-    def background_processor(self):
+    def background_processor(self, target):
         """ Background process manager """
-        while True:
-            time.sleep(1)
+        # Switch target to function
+        self.queue.put(f"Processing {str(self.result_lists[target]['title'])} on background...")
+        if(target == 3):
+            self.generate_fact_detail("2024-10-15")
 
 
     def get_yes_no(self):
@@ -147,6 +151,19 @@ class Main:
             self.stdscr.addstr(self.current_cursor().y, 0, " " * 80)
             self.stdscr.refresh()
 
+    # Main Function
+    def generate_fact_detail(self, parse_date: str):
+        """ Manual Fact Detail """
+        date_obj = pd.to_datetime(parse_date)
+        last_day = date_obj - pd.Timedelta(days=1)
+
+        from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
+        to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
+
+        fact_detail = ReportFactDetail()
+        fact_detail.produce_data(from_date,to_date)
+
+    # Utility
     def printer_l(self, word):
         """ Custom print for cursor current line """
         self.stdscr.addstr(self.current_cursor().y, 0, f"{word}")
