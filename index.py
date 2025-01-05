@@ -1,12 +1,14 @@
 """ OPERATION CENTRALIZED MONITORING TOOLS """
-# import time
+import time
 import sys
+import json
 import multiprocessing
+import threading
 import curses
 from dateutil import parser
 import pandas as pd
 from modules.report_fact_detail import ReportFactDetail
-# from modules.logging import Logging, LoggingType
+from modules.report_0poin import Report0POIN
 
 class CursorPosition:
     """ Shell cursor """
@@ -36,13 +38,11 @@ class Main:
     """ Main application class """
     def __init__(self):
         sys.stdout = Unbuffered(sys.stdout)
-
+        self.threads = []
         self.stdscr = curses.initscr()
         curses.noecho()
         curses.cbreak()
 
-        # Initialize all tool class
-        # self.logger = Logging()
         self.option_caption = [
             'Quit',
             'Application Manual',
@@ -74,16 +74,26 @@ class Main:
                     self.run()
                 else:
                     self.printer(f"You choose: {str(userchoice)}) {str(self.result_lists[userchoice]['title'])}")
-                    response = self.get_yes_no()
-                    if(response == 'y'):
-                        p = multiprocessing.Process(target=self.background_processor(userchoice), args=(self.queue,))
-                        p.start()
-                        p.join()
-                        # self.printer(self.queue.get())
-                        self.printer('Press any key to continue.(Y)')
+                    if(userchoice == 7):
+                        self.list_thread()
+                    elif(userchoice == 3):
+                        response = self.get_yes_no()
+                        if(response == 'y'):
+                            # runner = Report0POIN()
+                            # runner.try_run()
+                            # TODO : WHY 6 is given ??
+                            self.start_thread("2024-10-15", "Extra")
+                            
+                            
 
-                    else:
-                        self.printer('Press any key to continue.(N)')
+                            # p = multiprocessing.Process(target=self.generate_fact_detail("2024-10-15"))
+                            # p.daemon = True
+                            # p.start()
+                            # p.join()
+                            # self.printer(self.queue.get())
+
+                        else:
+                            self.printer('Press any key to continue.(N)')
 
                     self.stdscr.getch()
             else:
@@ -92,6 +102,35 @@ class Main:
 
             self.stdscr.refresh()
 
+    def list_thread(self):
+        """ What should I said ??? """
+        self.print_header()
+        self.printer('List of running threads :')
+        self.printer('')
+        i = 1
+        for thread in self.threads:
+            self.printer(f"{i}) Thread Name: {thread.name}, Alive: {thread.is_alive()}")
+            i+=1
+
+        self.printer('')
+        self.printer('Press any key to continue.')
+
+    def print_header(self):
+        """ What should I said ??? """
+        self.stdscr.refresh()
+        self.printer('*********************************************************')
+
+
+    def start_thread(self, param1, param2):
+        """ What should I said ??? """
+        self.print_header()
+        self.printer('Run thread !!')
+        self.printer('')
+        thread = threading.Thread(target=self.generate_fact_detail, args=(param1, param2))
+        thread.daemon = True
+        thread.start()
+        self.threads.append(thread)
+        self.printer('Press any key to continue.')
 
     def show_menu(self):
         """ Show application menu """
@@ -152,15 +191,23 @@ class Main:
             self.stdscr.refresh()
 
     # Main Function
-    def generate_fact_detail(self, parse_date: str):
+    def testing(self, param1="", param2=""):
         """ Manual Fact Detail """
+        time.sleep(1)
+        print(f"Hello {param1} {param2}")
+        self.printer(f"Hello {param1} {param2}")
+
+    def generate_fact_detail(self, parse_date: str, extra: str = ""):
+        """ Manual Fact Detail """
+        time.sleep(1)
+        self.printer(f"Running {parse_date} with extra {extra}")
         date_obj = pd.to_datetime(parse_date)
         last_day = date_obj - pd.Timedelta(days=1)
 
         from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
         to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
 
-        fact_detail = ReportFactDetail()
+        fact_detail = ReportFactDetail(f'fact_report_detail_{date_obj.strftime("%Y%m%d")}.log')
         fact_detail.produce_data(from_date,to_date)
 
     # Utility
@@ -191,8 +238,6 @@ class Main:
 
 if __name__ == "__main__":
     main = Main()
-    # main.run()
-
     try:
         main.run()
     finally:

@@ -1,26 +1,25 @@
+""" MONGO CONNECTION MANAGER """
 import configparser
 import urllib.parse
 import itertools
 from enum import Enum
-from pymongo import MongoClient
 from typing import Dict, Iterable
+from pymongo import MongoClient
 import pandas as pd
-
-from modules.logger import Logger
+from modules.file import File
 
 class QueryType(str, Enum):
+    """ What should I said ??? """
     FIND = "FIND"
     AGGREGATE = "AGGREGATE"
 
 class Mongo:
+    """ What should I said ??? """
     def __init__(self, database, collection, batch_size = 100):
-        from modules.logger import Logger
-
         config = configparser.ConfigParser()
         config.read('.env')
         environment = config['ENVIRONMENT']['TARGET']
-
-        self.__log = Logger()
+        
         if environment == 'development':
             self.connection_string = "mongodb://" + config['MONGO']['HOST'] + "/"
         else:
@@ -33,12 +32,10 @@ class Mongo:
         self.batch_size = batch_size
 
     def restore(self, path):
-        from modules.file import File
-        self.__log.info( 'Restore data')
+        """ What should I said ??? """
         file_instance = File()
         df = file_instance.read_line_json(path)
         self.collection.insert_many(df.to_dict(orient='records'))
-        self.__log.info( 'Restore finished')
 
 
     def batch_read(
@@ -47,6 +44,7 @@ class Mongo:
             projection: Dict,
             mode: QueryType = QueryType.FIND,
     ) -> Iterable[pd.DataFrame]:
+        """ What should I said ??? """
         if mode == QueryType.FIND:
             cursor = self.collection.find(query, projection = projection)
         elif mode == QueryType.AGGREGATE:

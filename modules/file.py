@@ -1,19 +1,29 @@
+""" What should I said ??? """
 import os
 import json
 import pandas as pd
-from modules.logging import LoggingType
+from tabulate import tabulate
+from modules.logger import Logger, LoggerFileHandler
 
 class File:
+    """ What should I said ??? """
     def __init__(self):
-        from modules.logging import Logging
-        self.Logging = Logging()
+        self.__log = Logger({
+            'info': 'info.log',
+            'error': 'error.log',
+            'warning': 'warning.log',
+            'debug': 'debug.log',
+            'exception': 'exception.log',
+        })
 
     def backup(self, path, zip_name):
+        """ What should I said ??? """
         os.system(f'zip -r {zip_name} {path}')
 
     def read_line_json(self, path: str):
+        """ What should I said ??? """
         data = []
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             for line in f:
                 data.append(json.loads(line))
 
@@ -26,7 +36,8 @@ class File:
         return pd.concat([df, payload], axis=1)
 
     def mongo_json_to_csv(self, path_from, path_to, projection):
-        self.Logging.log(LoggingType.INFO, 'Reading JSON')
+        """ What should I said ??? """
+        self.__log.info('Reading JSON')
         df = self.read_line_json(path_from)
 
         column = df.columns.tolist()
@@ -37,10 +48,10 @@ class File:
         print(df_column)
 
         df[projection].to_csv(path_to, index=False)
-        self.Logging.log(LoggingType.SUCCESS, 'Successfully converted JSON to CSV')
+        self.__log.info('Successfully converted JSON to CSV')
         self.csv_viewer(path_to)
 
     def csv_viewer(self, path):
-        from tabulate import tabulate
+        """ What should I said ??? """
         df = pd.read_csv(path)
         print(tabulate(df, headers='keys', tablefmt='psql'))

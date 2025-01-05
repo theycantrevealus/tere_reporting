@@ -1,22 +1,24 @@
 """ What should I said ??? """
-from modules.mongo import Mongo, QueryType
-# from tabulate import tabulate
-from dateutil import parser
-from datetime import *
-import subprocess
-import pandas as pd
 import os
+import json
+import subprocess
+from datetime import datetime
+from dateutil import parser
+import pymongo
+import pandas as pd
+from modules.mongo import Mongo, QueryType
+from modules.logger import Logger, LoggerFileHandler
+# from tabulate import tabulate
 
 class ReportFactDetail:
     """ What should I said ??? """
-    def __init__(self):
-        from modules.logger import Logger
-        self.__log = Logger()
+    def __init__(self, custom_logger = "info.log"):
+        self.__log = Logger(LoggerFileHandler(custom_logger, "warning.log", "debug.log", "error.log", "exception.log"))
 
         # Create connection
         try:
             self.mongo = Mongo('SLRevamp2', 'transaction_master')
-        except Exception as e:
+        except pymongo.errors.ConnectionFailure as e:
             self.__log.exception(f'{e}')
 
     def convert_datetime(self, dt_str: str):
@@ -24,11 +26,12 @@ class ReportFactDetail:
         return parser.isoparse(dt_str).astimezone()
 
     def format_file_name(self, dt_str):
+        """ What should I said ??? """
         return datetime.strptime(f'{dt_str}'.split("+")[0], '%Y-%m-%d %H:%M:%S').strftime('%Y%m%d')
 
     def formatted_trx_date(self, dt_str):
         """ Format given time as required by BI FACT DETAIL """
-        dt_obj = pd.to_datetime(str(dt_str).split("+")[0], format='%Y-%m-%d %H:%M:%S')
+        dt_obj = pd.to_datetime(str(dt_str).split("+", maxsplit=1)[0], format='%Y-%m-%d %H:%M:%S')
         dt_obj += pd.Timedelta(hours=7)
         return dt_obj.strftime('%d/%m/%Y %H:%M')
 
@@ -38,9 +41,11 @@ class ReportFactDetail:
         return any(msisdn.startswith(prefix) and msisdn[len(prefix):].isdigit() for prefix in prefixes)
 
     def allowed_indihome_number(self, msisdn):
+        """ What should I said ??? """
         return self.allowed_msisdn(msisdn) is False
 
     def validation_keyword_point_value_rule(self, payload, total_point=None) -> str:
+        """ What should I said ??? """
         if isinstance(payload, dict):
             eligibility = payload.get('keyword', {}).get('eligibility')
             result = 0
@@ -708,11 +713,10 @@ class ReportFactDetail:
 
         self.__log.info("Fetching data")
 
-        # TODO : Configurable target folder
         filename = f"poin_fact_report_detail_{self.format_file_name(end_date)}.dat"
         target_file_name = f"report/FACT_DETAIL/{filename}"
 
-        with open(target_file_name, "a") as file_writer:
+        with open(target_file_name, "a", encoding='utf-8') as file_writer:
             for batch in self.mongo.batch_read(pipeline, {}, QueryType.AGGREGATE):
                 fields = batch.columns.tolist()
                 batch_numpy = batch.to_numpy()
@@ -773,7 +777,7 @@ class ReportFactDetail:
 
             file_size = os.path.getsize(target_file_name)
             ctl_name = target_file_name.replace(extension, "ctl")
-            with open(ctl_name, "w") as ctl_file:
+            with open(ctl_name, "w", encoding='utf-8') as ctl_file:
                 ctl_file.write(f'{filename}|{row_count}|{file_size}')
 
         self.__log.info("Control file write finished")
@@ -781,20 +785,20 @@ class ReportFactDetail:
 
         tabular_result_tab = 25
         self.__log.separator()
-        ctl_cat = subprocess.run(["cat", ctl_name], capture_output=True, text=True)
+        ctl_cat = subprocess.run(["cat", ctl_name], capture_output=True, text=True, check=True)
         self.__log.info(f"{"Control file".ljust(20, " ")}: {ctl_cat.stdout}", tabular_result_tab)
 
-        linecount = subprocess.run(["wc", "-l", target_file_name], capture_output=True, text=True)
+        linecount = subprocess.run(["wc", "-l", target_file_name], capture_output=True, text=True, check=True)
         self.__log.info( f"{"Line Count".ljust(20, " ")}: {linecount.stdout}", tabular_result_tab)
 
         self.__log.info("Sample Result".ljust(20, " "), tabular_result_tab)
 
-        first_line = subprocess.run(["head", "-10", target_file_name], capture_output=True, text=True)
+        first_line = subprocess.run(["head", "-10", target_file_name], capture_output=True, text=True, check=True)
         output_f_lines = first_line.stdout.splitlines()
         for fline in output_f_lines:
             self.__log.info(f"${fline}", tabular_result_tab)
-
-        last_line = subprocess.run(["tail", "-10", target_file_name], capture_output=True, text=True)
+        self.__log.info("... <rest of data content> ...", tabular_result_tab)
+        last_line = subprocess.run(["tail", "-10", target_file_name], capture_output=True, text=True, check=True)
         output_l_lines = last_line.stdout.splitlines()
         for lline in output_l_lines:
             self.__log.info(f"${lline}", tabular_result_tab)

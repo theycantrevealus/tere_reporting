@@ -1,4 +1,5 @@
 class Mail:
+    """ What should I said ??? """
     def __init__(self, smtp_server, addr_from, addr_to, subject, password):
         import smtplib
         self.addr_from = addr_from
