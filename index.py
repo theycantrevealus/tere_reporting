@@ -57,9 +57,9 @@ class Main:
 
         self.queue = multiprocessing.Queue()
         
-        schedule.every().day.at("01:00").do(self.auto_generate_fact_detail, '')
+        schedule.every().day.at("01:00").do(self.auto_generate_fact_detail, 'fact_detail_auto')
 
-        schedule.every().day.at("03:00").do(self.auto_generate_dci, '')
+        schedule.every().day.at("03:00").do(self.auto_generate_dci, 'dci_auto')
 
         schedule.run_pending()
 
@@ -89,7 +89,7 @@ class Main:
                             self.stdscr.refresh()
                             fact_detail_date = str(self.stdscr.getstr().decode().lower())
                             self.printer(fact_detail_date)
-                            self.start_thread(fact_detail_date, "fact_detail")
+                            self.start_thread(fact_detail_date, "fact_detail_manual")
                         else:
                             self.printer('Press any key to continue.')
 
@@ -100,7 +100,7 @@ class Main:
                             self.stdscr.refresh()
                             dci_date = str(self.stdscr.getstr().decode().lower())
                             self.printer(dci_date)
-                            self.start_thread(dci_date, "dci")
+                            self.start_thread(dci_date, "dci_manual")
                         else:
                             self.printer('Press any key to continue.')
                     else:
@@ -249,7 +249,7 @@ class Main:
         to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
 
         fact_detail = ReportFactDetail()
-        fact_detail.produce_data(from_date,to_date)
+        fact_detail.produce_data(from_date,to_date, extra)
 
     def generate_dci(self, parse_date: str, extra: str = ""):
         """ Manual DCI """
@@ -262,7 +262,7 @@ class Main:
         to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
 
         dci = Report0POIN()
-        dci.produce_data(from_date,to_date)
+        dci.produce_data(from_date,to_date, extra)
 
     # Utility
     def printer_l(self, word):

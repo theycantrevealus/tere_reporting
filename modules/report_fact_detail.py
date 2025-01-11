@@ -75,11 +75,11 @@ class ReportFactDetail:
         except ValueError:
             return default
 
-    def produce_data(self, start_date, end_date):
+    def produce_data(self, start_date, end_date, extra = ""):
         """ Query transaction_master joining transaction_master_detail """
 
         process_start_time = datetime.now()
-        self.__log.info(f"Process start at {process_start_time}")
+        self.__log.info(f"Process start at {process_start_time} [{extra}]")
         pipeline = [
             {
                 "$match": {
