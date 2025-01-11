@@ -1,6 +1,5 @@
 """ What should I said ??? """
 import os
-import json
 import subprocess
 from datetime import datetime
 from dateutil import parser
@@ -12,8 +11,8 @@ from modules.logger import Logger, LoggerFileHandler
 
 class ReportFactDetail:
     """ What should I said ??? """
-    def __init__(self, custom_logger = "info.log"):
-        self.__log = Logger(LoggerFileHandler(custom_logger, "warning.log", "debug.log", "error.log", "exception.log"))
+    def __init__(self):
+        self.__log = Logger(LoggerFileHandler("info.log", "warning.log", "debug.log", "error.log", "exception.log"))
 
         # Create connection
         try:
@@ -68,6 +67,13 @@ class ReportFactDetail:
             return result
         else:
             return ""
+
+    def index_finder(self, parent, arr, target, default=None):
+        """ Index finder with null handler """
+        try:
+            return parent[arr.index(target)]
+        except ValueError:
+            return default
 
     def produce_data(self, start_date, end_date):
         """ Query transaction_master joining transaction_master_detail """
@@ -735,32 +741,33 @@ class ReportFactDetail:
                         end_date_unformatted = self.convert_datetime(f'{line[fields.index("end_date")]}'.replace(' ', 'T').split('.')[0])
                         end_date = f'{self.formatted_trx_date(end_date_unformatted)}' or ""
                     # self.__log.info(f"Writing {line[fields.index('msisdn')]}")
+
                     to_write = (
                         f"{transaction_date}|"
-                        f"{line[fields.index('msisdn')]}|"
-                        f"{line[fields.index('keyword')]}|"
-                        f"{line[fields.index('program_name')]}|"
-                        f"{line[fields.index('program_owner')]}|"
-                        f"{line[fields.index('detail_program_owner')]}|"
-                        f"{line[fields.index('created_by')]}|"
-                        f"{line[fields.index('lifestyle')]}|"
-                        f"{line[fields.index('category')]}|"
-                        f"{line[fields.index('keyword_title')]}|"
-                        f"{line[fields.index('SMS')]}|"
-                        f"{line[fields.index('UMB')]}|"
+                        f"{self.index_finder(line, fields, 'msisdn', '')}|"
+                        f"{self.index_finder(line, fields, 'keyword', '')}|"
+                        f"{self.index_finder(line, fields, 'program_name', '')}|"
+                        f"{self.index_finder(line, fields, 'program_owner', '')}|"
+                        f"{self.index_finder(line, fields, 'detail_program_owner', '')}|"
+                        f"{self.index_finder(line, fields, 'created_by', '')}|"
+                        f"{self.index_finder(line, fields, 'lifestyle', '')}|"
+                        f"{self.index_finder(line, fields, 'category', '')}|"
+                        f"{self.index_finder(line, fields, 'keyword_title', '')}|"
+                        f"{self.index_finder(line, fields, 'SMS', '')}|"
+                        f"{self.index_finder(line, fields, 'UMB', '')}|"
                         f"{self.validation_keyword_point_value_rule(line[fields.index('point')]) or ''}|"
-                        # f"{line[fields.index('subscriber_brand') or 'subscriber_branch']}|"
-                        f"{line[fields.index('program_regional')]}|"
-                        f"{line[fields.index('cust_value')]}|"
+                        f"{self.index_finder(line, fields, 'subscriber_brand', '')}|"
+                        f"{self.index_finder(line, fields, 'program_regional', '')}|"
+                        f"{self.index_finder(line, fields, 'cust_value', '')}|"
                         f"{start_date}|"
                         f"{end_date}|"
-                        f"{line[fields.index('merchant_name')]}|"
-                        f"{line[fields.index('subscriber_region')]}|"
-                        f"{line[fields.index('subscriber_branch')]}|"
-                        f"{line[fields.index('channel_code')]}|"
-                        f"{line[fields.index('subsidy')]}|"
-                        f"{line[fields.index('subscriber_tier')]}|"
-                        f"{line[fields.index('voucher_code')]}|"
+                        f"{self.index_finder(line, fields, 'merchant_name', '')}|"
+                        f"{self.index_finder(line, fields, 'subscriber_region', '')}|"
+                        f"{self.index_finder(line, fields, 'subscriber_branch', '')}|"
+                        f"{self.index_finder(line, fields, 'channel_code', '')}|"
+                        f"{self.index_finder(line, fields, 'subsidy', '')}|"
+                        f"{self.index_finder(line, fields, 'subscriber_tier', '')}|"
+                        f"{self.index_finder(line, fields, 'voucher_code', '')}|"
                         f"{self.allowed_indihome_number(line[fields.index("msisdn")])}".lower()
                     )
 

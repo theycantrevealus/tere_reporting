@@ -1,10 +1,10 @@
 """ OPERATION CENTRALIZED MONITORING TOOLS """
 import time
 import sys
-import json
 import multiprocessing
 import threading
 import curses
+import schedule
 from dateutil import parser
 import pandas as pd
 from modules.report_fact_detail import ReportFactDetail
@@ -46,16 +46,22 @@ class Main:
         self.option_caption = [
             'Quit',
             'Application Manual',
-            'Database        - Back Up',
+            'Database - Back Up',
             'Report [MANUAL] - Fact Detail',
             'Report [MANUAL] - DCI 0POIN',
-            'Report [AUTO]   - Fact Detail',
-            'Report [AUTO]   - DCI 0POIN',
+            'Report [AUTO] - Fact Detail',
+            'Report [AUTO] - DCI 0POIN',
             'Multiprocess'
         ]
         self.result_lists = [{'title': str(i)} for i in self.option_caption]
 
         self.queue = multiprocessing.Queue()
+        
+        schedule.every().day.at("01:00").do(self.auto_generate_fact_detail, '')
+
+        schedule.every().day.at("03:00").do(self.auto_generate_dci, '')
+
+        schedule.run_pending()
 
 
     def run(self):
@@ -79,21 +85,26 @@ class Main:
                     elif(userchoice == 3):
                         response = self.get_yes_no()
                         if(response == 'y'):
-                            # runner = Report0POIN()
-                            # runner.try_run()
-                            # TODO : WHY 6 is given ??
-                            self.start_thread("2024-10-15", "Extra")
-                            
-                            
-
-                            # p = multiprocessing.Process(target=self.generate_fact_detail("2024-10-15"))
-                            # p.daemon = True
-                            # p.start()
-                            # p.join()
-                            # self.printer(self.queue.get())
-
+                            self.printer("Input target fact detail date to generate (YYYY-MM-DD): ")
+                            self.stdscr.refresh()
+                            fact_detail_date = str(self.stdscr.getstr().decode().lower())
+                            self.printer(fact_detail_date)
+                            self.start_thread(fact_detail_date, "fact_detail")
                         else:
-                            self.printer('Press any key to continue.(N)')
+                            self.printer('Press any key to continue.')
+
+                    elif(userchoice == 4):
+                        response = self.get_yes_no()
+                        if(response == 'y'):
+                            self.printer("Input target DCI date to generate (YYYY-MM-DD): ")
+                            self.stdscr.refresh()
+                            dci_date = str(self.stdscr.getstr().decode().lower())
+                            self.printer(dci_date)
+                            self.start_thread(dci_date, "dci")
+                        else:
+                            self.printer('Press any key to continue.')
+                    else:
+                        self.printer("Module is not ready. Press any key to continue.")
 
                     self.stdscr.getch()
             else:
@@ -103,7 +114,7 @@ class Main:
             self.stdscr.refresh()
 
     def list_thread(self):
-        """ What should I said ??? """
+        """ List current running thread process """
         self.print_header()
         self.printer('List of running threads :')
         self.printer('')
@@ -116,20 +127,26 @@ class Main:
         self.printer('Press any key to continue.')
 
     def print_header(self):
-        """ What should I said ??? """
+        """ Show menu header """
         self.stdscr.refresh()
         self.printer('*********************************************************')
 
-
     def start_thread(self, param1, param2):
-        """ What should I said ??? """
+        """ Multi threading manager """
         self.print_header()
-        self.printer('Run thread !!')
+        self.printer(f'Run thread [{param2}]!!')
         self.printer('')
-        thread = threading.Thread(target=self.generate_fact_detail, args=(param1, param2))
-        thread.daemon = True
-        thread.start()
-        self.threads.append(thread)
+        if(param2 == 'fact_detail'):
+            thread = threading.Thread(target=self.generate_fact_detail, args=(param1, param2))
+            thread.daemon = True
+            thread.start()
+            self.threads.append(thread)
+        elif(param2 == 'dci'):
+            thread = threading.Thread(target=self.generate_dci, args=(param1, param2))
+            thread.daemon = True
+            thread.start()
+            self.threads.append(thread)
+        
         self.printer('Press any key to continue.')
 
     def show_menu(self):
@@ -148,14 +165,6 @@ class Main:
         header.append("*********************************************************\n")
 
         self.stdscr.addstr(0, 0, "\n".join(header))
-
-
-    def background_processor(self, target):
-        """ Background process manager """
-        # Switch target to function
-        self.queue.put(f"Processing {str(self.result_lists[target]['title'])} on background...")
-        if(target == 3):
-            self.generate_fact_detail("2024-10-15")
 
 
     def get_yes_no(self):
@@ -197,6 +206,38 @@ class Main:
         print(f"Hello {param1} {param2}")
         self.printer(f"Hello {param1} {param2}")
 
+    def auto_generate_fact_detail(self, extra: str = ""):
+        """ Cron Fact Detail """
+        time.sleep(1)
+
+        parse_date = f'{pd.to_datetime('today').strftime("%Y-%m-%d")}'
+
+        self.printer(f"Running {parse_date} with extra {extra}")
+        date_obj = pd.to_datetime(parse_date)
+        last_day = date_obj - pd.Timedelta(days=1)
+
+        from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
+        to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
+
+        fact_detail = ReportFactDetail()
+        fact_detail.produce_data(from_date,to_date)
+
+    def auto_generate_dci(self, extra: str = ""):
+        """ Cron DCI """
+        time.sleep(1)
+
+        parse_date = f'{pd.to_datetime('today').strftime("%Y-%m-%d")}'
+
+        self.printer(f"Running {parse_date} with extra {extra}")
+        date_obj = pd.to_datetime(parse_date)
+        last_day = date_obj - pd.Timedelta(days=1)
+
+        from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
+        to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
+
+        dci = Report0POIN()
+        dci.produce_data(from_date,to_date)
+
     def generate_fact_detail(self, parse_date: str, extra: str = ""):
         """ Manual Fact Detail """
         time.sleep(1)
@@ -207,8 +248,21 @@ class Main:
         from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
         to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
 
-        fact_detail = ReportFactDetail(f'fact_report_detail_{date_obj.strftime("%Y%m%d")}.log')
+        fact_detail = ReportFactDetail()
         fact_detail.produce_data(from_date,to_date)
+
+    def generate_dci(self, parse_date: str, extra: str = ""):
+        """ Manual DCI """
+        time.sleep(1)
+        self.printer(f"Running {parse_date} with extra {extra}")
+        date_obj = pd.to_datetime(parse_date)
+        last_day = date_obj - pd.Timedelta(days=1)
+
+        from_date = parser.isoparse(f'{last_day.strftime("%Y-%m-%d")}T17:00:00.000Z')
+        to_date = parser.isoparse(f'{parse_date}T17:00:00.000Z')
+
+        dci = Report0POIN()
+        dci.produce_data(from_date,to_date)
 
     # Utility
     def printer_l(self, word):
