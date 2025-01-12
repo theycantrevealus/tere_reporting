@@ -793,10 +793,10 @@ class ReportFactDetail:
         tabular_result_tab = 25
         self.__log.separator()
         ctl_cat = subprocess.run(["cat", ctl_name], capture_output=True, text=True, check=True)
-        self.__log.info(f'{"Control file".ljust(20, " ")}: {ctl_cat.stdout}', tabular_result_tab)
+        self.__log.info(f"{"Control file".ljust(20, " ")}: {ctl_cat.stdout}", tabular_result_tab)
 
         linecount = subprocess.run(["wc", "-l", target_file_name], capture_output=True, text=True, check=True)
-        self.__log.info( f'{"Line Count".ljust(20, " ")}: {linecount.stdout}', tabular_result_tab)
+        self.__log.info( f"{"Line Count".ljust(20, " ")}: {linecount.stdout}", tabular_result_tab)
 
         self.__log.info("Sample Result".ljust(20, " "), tabular_result_tab)
 
@@ -811,4 +811,4 @@ class ReportFactDetail:
             self.__log.info(f"${lline}", tabular_result_tab)
 
         self.__log.separator()
-        self.__log.info(f'{"Execution time".ljust(20, " ")}: {(datetime.now() - process_start_time)}', tabular_result_tab)
+        self.__log.info(f"{"Execution time".ljust(20, " ")}: {(datetime.now() - process_start_time)}", tabular_result_tab)

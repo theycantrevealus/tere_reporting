@@ -2,8 +2,9 @@
 import os
 import json
 import pandas as pd
-from tabulate import tabulate
-from modules.logger import Logger, LoggerFileHandler
+# Tabulate need dataclass. Dataclass is avail on latest python version
+# from tabulate import tabulate
+from modules.logger import Logger
 
 class File:
     """ What should I said ??? """
@@ -54,4 +55,4 @@ class File:
     def csv_viewer(self, path):
         """ What should I said ??? """
         df = pd.read_csv(path)
-        print(tabulate(df, headers='keys', tablefmt='psql'))
+        # print(tabulate(df, headers='keys', tablefmt='psql'))

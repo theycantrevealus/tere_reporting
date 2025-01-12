@@ -57,9 +57,9 @@ class Main:
 
         self.queue = multiprocessing.Queue()
         
-        schedule.every().day.at("01:00").do(self.start_thread, '', 'fact_detail_auto')
+        schedule.every().day.at("01:00").do(self.auto_generate_fact_detail, 'fact_detail_auto')
 
-        schedule.every().day.at("05:00").do(self.start_thread, '', 'dci_auto')
+        schedule.every().day.at("03:00").do(self.auto_generate_dci, 'dci_auto')
 
         schedule.run_pending()
 
@@ -143,16 +143,6 @@ class Main:
             self.threads.append(thread)
         elif(param2 == 'dci'):
             thread = threading.Thread(target=self.generate_dci, args=(param1, param2))
-            thread.daemon = True
-            thread.start()
-            self.threads.append(thread)
-        elif(param2 == 'fact_detail_auto'):
-            thread = threading.Thread(target=self.auto_generate_fact_detail, args=(param1, param2))
-            thread.daemon = True
-            thread.start()
-            self.threads.append(thread)
-        elif(param2 == 'dci_auto'):
-            thread = threading.Thread(target=self.auto_generate_dci, args=(param1, param2))
             thread.daemon = True
             thread.start()
             self.threads.append(thread)
