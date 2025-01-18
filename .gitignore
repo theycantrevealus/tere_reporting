@@ -7,3 +7,6 @@ file
 __pycache__
 testing*.py
 */*.log
+*.csv
+apps.log*
+*.sql
