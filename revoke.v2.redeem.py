@@ -47,6 +47,7 @@ class Revoke:
                     log_to_file = f"logs/{row.filename.replace('.csv', '.log')}"
                     keyword = self.config['REVOKE']['KEYWORD']
                     balance = 0
+                    total_redeem = 0
                     revoke = row.poin_revoke
 
                     # GET BALANCE
@@ -60,12 +61,13 @@ class Revoke:
                         message = 'Invalid JSON balance data'
                         balance = 0
 
+                    # 9930 <> 9330
                     if(balance >= revoke):
                         total_redeem = revoke
                     elif(balance <= revoke):
                         total_redeem = balance
                     else:
-                        total_redeem = 0                
+                        total_redeem = 0
                     channel = self.config['REVOKE']['CHANNEL']
                     filename = row.filename
                     row_number = (row.Index + 1)
@@ -75,6 +77,12 @@ class Revoke:
                     serial = row.serial_no
                     check_transaction = self.check_transaction_exists(serial)
                     trx = None
+
+                    print(f"Balance              : {balance}")
+                    print(f"Revoke               : {revoke}")
+                    print(f"Redeem               : {total_redeem}")
+                    print(f"Check Serial         : {check_transaction}")
+                    print("=================================================================")
 
                     if self.environment == 'development':
                         if(total_redeem > 0):
@@ -286,6 +294,10 @@ class Revoke:
                     await self.write_to_result(content="+-----------------+-----------------+-----------------+--------------+--------------+--------------+-----------------+-----------------+-----------------+----------+----------+--------------+--------------+", target=snapshot_target)
                 await self.write_to_result(content="", target=snapshot_target)
                 await self.write_to_result(content="", target=snapshot_target)
+
+                # Move file after finish processing
+
+
                 # print("+-----------------+-----------------+-----------------+--------------+--------------+--------------+-----------------+-----------------+-----------------+----------+----------+--------------+--------------+")
                 # print("| [LOG - Success] | [LOG - Success] | [LOG - Success] | [LOG - Fail] | [LOG - Fail] | [LOG - Fail] | [LOG - Partial] | [LOG - Partial] | [LOG - Partial] | [Source] | [Source] | [DB]         | [DB]         |")
                 # print("| Row             | Total Redeem    | Revoke          | Row          | Total Redeem | Revoke       | Row             | Total Redeem    | Revoke          | Row      | Revoke   | Row          | Total Redeem |")
