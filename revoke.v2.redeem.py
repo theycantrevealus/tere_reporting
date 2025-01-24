@@ -26,6 +26,12 @@ class Revoke:
         else:
             self.mongo_uri = "mongodb://" + self.config['MONGO']['USERNAME'] + ":" + urllib.parse.quote_plus(self.config['MONGO']['PASSWORD']) + "@" + self.config['MONGO']['HOST'] + "/?" + self.config['MONGO']['EXTRA']
 
+        self.client = MongoClient(self.mongo_uri)
+
+    def __del__(self):
+        """Load"""
+        self.client.close()
+        
     async def process_data(self):
         """Load"""
         try:
@@ -278,7 +284,8 @@ class Revoke:
                     ])
 
                 report_df = pd.DataFrame(report_entry, columns=report_headers)
-                report_df = report_df.map(lambda x: x.replace('\n', '') if isinstance(x, str) else x)
+                # report_df = report_df.map(lambda x: x.replace('\n', '') if isinstance(x, str) else x)
+                report_df = report_df.applymap(lambda x: x.replace('\n', '') if type(x) == str else x)
 
                 # Print table
                 # print(tabulate(report_df, headers=report_headers, tablefmt="fancy_grid"))
@@ -322,8 +329,7 @@ class Revoke:
 
     async def wait_transaction_finish(self, trx_id):
         """Load"""
-        client = MongoClient(self.mongo_uri)
-        database = client.get_database(self.config['MONGO']['DATABASE'])
+        database = self.client.get_database(self.config['MONGO']['DATABASE'])
         collection = database.get_collection(f"{self.config['MONGO']['COL_TRX_MASTER']}")
         while True:
             data = collection.find_one({ "transaction_id": trx_id, "origin": {"$regex": "deduct_" } })
@@ -380,7 +386,7 @@ class Revoke:
             data = response.read().decode()
             conn.close()
             return data
-        elif(status_code == 403):
+        elif(status_code == 403 or status_code == 401):
             await self.set_refresh_token()
             return await self.get_balance(msisdn)
         else:
@@ -410,7 +416,7 @@ class Revoke:
         if(status_code == 200 or status_code == 202):
             data = response.read().decode()
             return data
-        elif(status_code == 403):
+        elif(status_code == 403 or status_code == 401):
             await self.set_refresh_token()
             return await self.redeem(msisdn=msisdn, keyword=keyword, total_redeem=total_redeem, channel=channel)
         else:
@@ -419,15 +425,13 @@ class Revoke:
 
     def check_transaction_exists(self, serial_no):
         """Load"""
-        client = MongoClient(self.mongo_uri)
-        database = client.get_database(self.config['MONGO']['DATABASE_CORE'])
+        database = self.client.get_database(self.config['MONGO']['DATABASE_CORE'])
         collection = database.get_collection(f"{self.config['MONGO']['COL_SERIAL']}")
         return collection.find_one({ "sn": serial_no}) is not None
     
     def report_transaction(self):
         """Load"""
-        client = MongoClient(self.mongo_uri)
-        database = client.get_database(self.config['MONGO']['DATABASE_CORE'])
+        database = self.client.get_database(self.config['MONGO']['DATABASE_CORE'])
         collection = database.get_collection(f"{self.config['MONGO']['COL_TRANSACTION']}")
         return pd.DataFrame(list(collection.aggregate([
             {
