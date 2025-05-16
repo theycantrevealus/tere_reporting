@@ -51,50 +51,59 @@ def worker(chunk_data, queue_process):
 # ================================================================================================
 def writer(queue_task):
     """What should i do?"""
-    client = MongoClient(
-        MONGO_URI,
-        maxPoolSize=MONGODB_MAX_POOL_SIZE,
-        connectTimeoutMS=30000,
-        socketTimeoutMS=60000,
-        waitQueueTimeoutMS=30000,
-        w=MONGODB_WRITE_CONCERN
-    )
-    target_collection = "programtemplists"
-    database = client.get_database(config['MONGO']['DATABASE'])
-    collection = database.get_collection(f"{target_collection}")
-    while True:
-        chunk_a = queue_task.get()
-        if chunk_a is None:
-            break
-        data = chunk_a.to_dict(orient='records')
-        bulk_operations = [
-            UpdateOne({
-                "msisdn": record['msisdn'],
-                "identifier": IDENTIFIER,
-                "type": SEGMENTATION_TYPE,
-                "program": PROGRAM_ID
-            }, {
-                "$inc": {"counter": record['counter']},
-                "$set": {
-                    "updated_at": datetime.now(pytz.utc),
-                    "match": record['match']
-                },
-                "$setOnInsert": {
-                    "account": CREATOR_ID,
-                    "location": LOCATION_ID,
-                    "identifier": IDENTIFIER,
-                    "program": PROGRAM_ID,
+    try:
+        client = MongoClient(
+            MONGO_URI,
+            maxPoolSize=MONGODB_MAX_POOL_SIZE,
+            connectTimeoutMS=30000,
+            socketTimeoutMS=60000,
+            waitQueueTimeoutMS=30000,
+            w=MONGODB_WRITE_CONCERN
+        )
+        target_collection = "programtemplists"
+        database = client.get_database(config['MONGO']['DATABASE'])
+        collection = database.get_collection(f"{target_collection}")
+        while True:
+            chunk_a = queue_task.get()
+            if chunk_a is None:
+                break
+            data = chunk_a.to_dict(orient='records')
+            bulk_operations = [
+                UpdateOne({
                     "msisdn": record['msisdn'],
-                    "created_at": datetime.now(pytz.utc),
-                    "deleted_at": None,
+                    "identifier": IDENTIFIER,
                     "type": SEGMENTATION_TYPE,
-                    "__v": 0
-                }
-            }, upsert=True)
-            for record in data
-        ]
-        collection.bulk_write(bulk_operations, ordered=False)
-    client.close()
+                    "program": PROGRAM_ID
+                }, {
+                    # "$inc": {"counter": record['counter']},
+                    "$set": {
+                        "updated_at": datetime.now(pytz.utc),
+                        "match": record['match'],
+                        "irisan": "y",
+                        "counter": 1, # Set 1
+                        "remark": "updated"
+                    },
+                    "$setOnInsert": {
+                        "account": CREATOR_ID,
+                        "location": LOCATION_ID,
+                        "identifier": IDENTIFIER,
+                        "counter": 1, # Set 1
+                        "program": PROGRAM_ID,
+                        "msisdn": record['msisdn'],
+                        "created_at": datetime.now(pytz.utc),
+                        "deleted_at": None,
+                        "type": SEGMENTATION_TYPE,
+                        "remark": "manual",
+                        "__v": 0
+                    }
+                }, upsert=True)
+                for record in data
+            ]
+            collection.bulk_write(bulk_operations, ordered=False)
+    except Exception as e:
+        raise RuntimeError("Unable to find the document due to the following error: ", e) from e
+    finally:
+        client.close()
 
 if __name__ == '__main__':
     queue = multiprocessing.Manager().Queue()

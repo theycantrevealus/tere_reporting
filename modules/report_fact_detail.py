@@ -1,6 +1,7 @@
 """ What should I said ??? """
 import os
 import subprocess
+import math
 from datetime import datetime
 from dateutil import parser
 import pymongo
@@ -71,7 +72,20 @@ class ReportFactDetail:
     def index_finder(self, parent, arr, target, default=None):
         """ Index finder with null handler """
         try:
-            return parent[arr.index(target)]
+            # Check if value is null / empty array / undefined
+            process_value = parent[arr.index(target)]
+            if process_value is None:
+                return default
+            elif isinstance(process_value, float) and math.isnan(process_value):
+                return default
+            elif isinstance(process_value, str) and process_value.strip() == "":
+                return default
+            elif isinstance(process_value, (list, tuple)) and len(process_value) == 0:
+                return default
+            elif isinstance(process_value, dict) and len(process_value) == 0:
+                return default
+            else:
+                return process_value
         except ValueError:
             return default
 

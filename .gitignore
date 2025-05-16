@@ -10,3 +10,4 @@ testing*.py
 *.csv
 apps.log*
 *.sql
+.ipynb_checkpoints
