@@ -4,6 +4,8 @@ venv
 report
 file
 **/*.zip
+**/*.ctl
+**/*.txt
 __pycache__
 testing*.py
 */*.log
