@@ -13,3 +13,5 @@ testing*.py
 apps.log*
 *.sql
 .ipynb_checkpoints
+**/.DS_Store
+landing
