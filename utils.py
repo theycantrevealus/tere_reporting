@@ -1,6 +1,8 @@
 import http.client
 import json
 import datetime
+import os
+import shutil
 from pymongo import MongoClient
 
 async def set_refresh_token(config):
@@ -54,7 +56,7 @@ async def get_url(flag, url_path, auth = ""):
     return f"Unhandled response [{flag}] :: {status_code} - {response.read().decode()}", True
 
 # return redeem result and error flag
-async def redeem(config, log_file_path, url, port, url_path, token, msisdn, keyword, channel, transaction_id = None, total_redeem = 0, send_notification = False):
+async def redeem(config, log_file_path, url, port, url_path, token, msisdn, keyword, channel, transaction_id = None, total_redeem = -1, total_bonus = 0, send_notification = False):
     """Load"""
     conn = http.client.HTTPConnection(url, port)
     data = {
@@ -67,9 +69,11 @@ async def redeem(config, log_file_path, url, port, url_path, token, msisdn, keyw
 
     if transaction_id:
         data.update({'transaction_id': transaction_id})
-    if total_redeem > 0:
+    if total_redeem > -1:
         data.update({'total_redeem': total_redeem})
-    
+    if total_bonus > 0:
+        data.update({'total_bonus': total_bonus})
+
     json_data = json.dumps(data)
     headers = {
         'Content-Type': 'application/json',
@@ -88,10 +92,10 @@ async def redeem(config, log_file_path, url, port, url_path, token, msisdn, keyw
     elif status_code in (403, 401):
         access_token, error_msg = await set_refresh_token(config)
         if error_msg != "":
-          return f"Unhandled response refresh auth [AUTHENTICATION] :: {error_msg}", True
+            return f"Unhandled response refresh auth [AUTHENTICATION] :: {error_msg}", True
 
         print_trx_to_log_file(log_file_path, 'authentication', msisdn, transaction_id, f"Try to refresh authentication, response : {data}")
-        return await redeem(config, log_file_path, url, port, url_path, access_token, msisdn, keyword, channel, transaction_id, total_redeem, send_notification), False
+        return await redeem(config, log_file_path, url, port, url_path, access_token, msisdn, keyword, channel, transaction_id, total_redeem, total_bonus, send_notification), False
     else:
         return f"Unhandled response [REDEEM] :: {status_code} - {response.read().decode()}", True
 
@@ -101,6 +105,13 @@ def check_transaction_exists(mongo_uri, database, collection, query_filter):
     database = client.get_database(database)
     collection = database.get_collection(collection)
     return collection.find_one(query_filter) is not None
+
+def print_to_log_file(log_file_path, log_message):
+    """Prints a message to the console and appends it to a log file with a timestamp"""
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    log_message = f"{current_time} | {log_message}"
+    with open(log_file_path, 'a', encoding='utf-8') as log_file:
+        log_file.write(log_message + "\n")
 
 def print_trx_to_log_file(log_file_path, activity, service_id, channel_trx_id, message):
     """Prints a message to the console and appends it to a log file with a timestamp by specific format"""
@@ -143,3 +154,41 @@ def allowed_msisdn(msisdn):
     """Check if msisdn is allowed"""
     prefixes = ("08", "62", "81", "82", "83", "85", "628")
     return any(msisdn.startswith(prefix) and msisdn[len(prefix):].isdigit() for prefix in prefixes)
+
+def scan_file_name_os_listdir(directory, extension):
+    """Scan files with specific extension using os.listdir()"""
+    files = []
+    if os.path.exists(directory):
+        for filename in os.listdir(directory):
+            if filename.lower().endswith(extension.lower()):
+                name_without_ext = os.path.splitext(filename)[0]
+                files.append(name_without_ext)
+    return files
+
+def move_specific_file(log_file_path, flag, source_dir, destination_dir, filename):
+    """Move specific files to destination directory"""
+    os.makedirs(destination_dir, exist_ok=True)
+    moved_file = ""
+    source_path = os.path.join(source_dir, filename)
+    destination_path = os.path.join(destination_dir, filename)
+    if os.path.exists(source_path):
+        try:
+            shutil.move(source_path, destination_path)
+            print_to_log_file(log_file_path, f"{flag} Moved to {destination_dir}: {filename}")
+            moved_file = filename
+        except Exception as e:
+            print_to_log_file(log_file_path, f"{flag} Error moving {filename}: {e}")
+    else:
+        print_to_log_file(log_file_path, f"{flag} File not found in {source_dir}: {filename}")
+    return moved_file
+
+def simple_confirmation(message="Do you want to continue?"):
+    """Simple confirmation with custom message"""
+    while True:
+        response = input(f"{message} (y/n): ").lower().strip()
+        if response in ['y', 'yes', '1', 'true']:
+            return True
+        elif response in ['n', 'no', '0', 'false']:
+            return False
+        else:
+            print("Invalid input. Please enter 'y' for yes or 'n' for no.")
