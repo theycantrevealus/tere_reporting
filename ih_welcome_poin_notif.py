@@ -20,6 +20,7 @@ LOGS = config['WELCOME_POIN_INDIHOME']['LOGGING']
 REDEEM_SUCCESS_TYPE = '6319f7e751e92661186160f0'
 NOTIF_VIA_SMS = '62ffc2988a01008799e785fe'
 ALLOW_MSISDN_CONFIG_KEY = 'SERVICE_NUMBER_FORMAT'
+MSISDN_PATTERN = r'^(62811|62812|62813|62821|62822|62823|62851|62852|62853)[0-9]{7,9}$'
 SMS_GATEWAY_HOST = config['NOTIFICATION']['SMS_HOST']
 SMS_GATEWAY_PORT = config['NOTIFICATION']['SMS_PORT']
 SMS_GATEWAY_PATH = config['NOTIFICATION']['SMS_PATH']
@@ -75,8 +76,9 @@ async def process_all_data(log_file):
     process_channel_trx_id = "config_regex_setup"
     try:
         # get config regex tsel number
-        config_tsel_number = get_data_detail(MONGO_URI, config['MONGO']['DATABASE'], config['MONGO']['COL_SYSTEM_CONFIG'], {"param_key": ALLOW_MSISDN_CONFIG_KEY})
-        regex_value = config_tsel_number['param_value']['msisdn']['allow']
+        # config_tsel_number = get_data_detail(MONGO_URI, config['MONGO']['DATABASE'], config['MONGO']['COL_SYSTEM_CONFIG'], {"param_key": ALLOW_MSISDN_CONFIG_KEY})
+        # regex_value = config_tsel_number['param_value']['msisdn']['allow']
+        regex_value = MSISDN_PATTERN
         all_data = await get_all_data(MONGO_URI, config['MONGO']['DATABASE'], config['MONGO']['COL_IH_WELCOME_POIN_TASK'], {'redeem_status': 'process', 'notification_status': 'pending'})
 
         for data in all_data:

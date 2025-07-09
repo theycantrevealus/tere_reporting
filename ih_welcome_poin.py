@@ -193,19 +193,19 @@ async def process_data(filename, row, fee_range_config, log_file):
         # check redeem order_id, if already redeem skip (TO BE CONFIRM)
         redeem_result = get_data_detail(MONGO_URI, config['MONGO']['DATABASE'], config['MONGO']['COL_TRX_MASTER'], {'channel_transaction_id': row['order_id']})
         if redeem_result:
-            print_trx_to_log_file(log_file, 'redeem', row['service_id'], row['order_id'], f"Redeem not processed: order_id = {row['order_id']} already processed")
+            print_trx_to_log_file(log_file, 'redeem', row['service_id'], row['order_id'], f"Redeem not processed: order_id = {row['order_id']} already processed. Full data row: {row.to_dict()}")
             return
 
         fee_amount = int(row['fee'])
         if row['process_state'].upper() != 'COMPLETED':
-            print_trx_to_log_file(log_file, 'redeem', row['service_id'], row['order_id'], f"Redeem not processed because process_state is not COMPLETED. Row process_state = {row['process_state']}")
+            print_trx_to_log_file(log_file, 'redeem', row['service_id'], row['order_id'], f"Redeem not processed because process_state is not COMPLETED. Row process_state = {row['process_state']}. Full data row: {row.to_dict()}")
             return
         # checking fee amount in range fee
         get_range_fee = fee_range_config['param_value']['static']
         if str(fee_amount) in get_range_fee:
             # execute redeem
             access_token = config['WELCOME_POIN_INDIHOME']['TOKEN']
-            print_trx_to_log_file(log_file, 'redeem', row['service_id'], row['order_id'], 'Redeem processing...')
+            print_trx_to_log_file(log_file, 'redeem', row['service_id'], row['order_id'], f'Processing redeem for row data {row.to_dict()}')
             redeem_result, error = await redeem(config, log_file, config['NONCORE']['URL'], config['NONCORE']['PORT'], config['WELCOME_POIN_INDIHOME']['REDEEM_URL_PATH'], access_token, str(row['service_id']), get_range_fee[str(fee_amount)]['keyword'], config['WELCOME_POIN_INDIHOME']['CHANNEL'], row['order_id'], 0, get_range_fee[str(fee_amount)]['poin_amount'])
             if(error):
                 print_trx_to_log_file(log_file, 'redeem', row['service_id'], row['order_id'], f'Redeem failed: {redeem_result}')
@@ -224,6 +224,7 @@ async def process_data(filename, row, fee_range_config, log_file):
                     "redeem_status": "process", # process, completed, not_process (if process_state != "COMPLETED")
                     "notification_status": "pending", # pending, sent, not_sent
                     "process_at": datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    "full_data_row": row.to_dict()  # Store the entire row data
                 }
                 insert_result = insert_data(MONGO_URI, config['MONGO']['DATABASE'], config['MONGO']['COL_IH_WELCOME_POIN_TASK'], data)
                 print_trx_to_log_file(log_file, 'redeem', row['service_id'], row['order_id'], "Success process redeem. Insert task _id: " + str(insert_result.inserted_id))
