@@ -15,3 +15,5 @@ apps.log*
 .ipynb_checkpoints
 **/.DS_Store
 landing
+**/*.log
+!**/.gitkeep

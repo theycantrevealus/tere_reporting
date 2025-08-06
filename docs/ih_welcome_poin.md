@@ -61,29 +61,45 @@ Collection name: `ih_welcome_poin_tasks`
   "description": "",
   "param_value": {
     "static": {
-      "50000": 500,
-      "55000": 500,
-      "150000": 1500,
-      "166500": 1500
+      "50000": {
+        "keyword": "KEYPOINFLEX25",
+        "poin_amount": 500
+      },
+      "55000": {
+        "keyword": "KEYPOINFLEX25",
+        "poin_amount": 500
+      },
+      "150000": {
+        "keyword": "KEYPOINFLEX25",
+        "poin_amount": 1500
+      },
+      "166500": {
+        "keyword": "KEYPOINFLEX25",
+        "poin_amount": 1500
+      }
     },
     "ranged": [
       {
-        "min_amount": 1000,
-        "max_amount": 55000,
-        "poin": 500
+        "min_fee_amount": 1000,
+        "max_fee_amount": 55000,
+        "poin_amount": 500,
+        "keyword": "KEYPOINFLEX25"
       },
       {
-        "min_amount": 61000,
-        "max_amount": 100000,
-        "poin": 1000
+        "min_fee_amount": 61000,
+        "max_fee_amount": 100000,
+        "poin_amount": 1000,
+        "keyword": "KEYPOINFIX2502"
       },
       {
-        "min_amount": 110000,
-        "max_amount": 170000,
-        "poin": 1500
+        "min_fee_amount": 110000,
+        "max_fee_amount": 170000,
+        "poin_amount": 1500,
+        "keyword": "KEYPOINFIX2503"
       }
     ],
     "divide_by_fee": {
+      "keyword": "KEYPOINDEVIDEVAL",
       "divide_value": 100
     }
   }
