@@ -1,0 +1,521 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "P5B94F0EE9C97DD34"
+      },
+      "description": "Get query per collection rate",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 17,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.0-17027759091",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "P5B94F0EE9C97DD34"
+          },
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "sum by(collection_name) (count_over_time({job=~\"$job\", filename=~\"$file\"} | json ns=\"attr.ns\" | ns != `` | ns != `admin.$cmd` | ns !~ `^local.*` | ns !~ `^config.*` | ns !~ `.*\\$cmd.*` | ns !~ `^admin.*` | label_format collection_name=\"{{.ns}}\" [1m]))",
+          "legendFormat": "{{ collection_name }}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Pie Chart",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "P5B94F0EE9C97DD34"
+      },
+      "description": "Get query per collection rate",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 8,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.0-17027759091",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "P5B94F0EE9C97DD34"
+          },
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "sum by(collection_name) (count_over_time({job=~\"$job\", filename=~\"$file\"} | json ns=\"attr.ns\" | ns != `` | ns != `admin.$cmd` | ns !~ `^local.*` | ns !~ `^config.*` | ns !~ `.*\\$cmd.*` | ns !~ `^admin.*` | label_format collection_name=\"{{.ns}}\" [1m]))",
+          "legendFormat": "{{ collection_name }}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Collection Query Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "P5B94F0EE9C97DD34"
+      },
+      "description": "Get query per collection rate",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 9
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.0-17027759091",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "P5B94F0EE9C97DD34"
+          },
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "sum by(mongo_severity) (count_over_time({job=~\"$job\", filename=~\"$file\"} | json mongo_severity=\"s\" | mongo_severity =~ `$mongo_severity` [$__auto]))",
+          "legendFormat": "{{ collection_name }}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Severity Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "P5B94F0EE9C97DD34"
+      },
+      "description": "Query log from mongod",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 1,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": false,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "pluginVersion": "12.2.0-17027759091",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "P5B94F0EE9C97DD34"
+          },
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "{job=~\"$job\", filename=~\"$file\"}\n| json\n| c = \"COMMAND\"\n| attr_ns != \"\"\n| attr_ns != \"admin.$cmd\"\n| attr_ns !~ \"^local.*\"\n| attr_ns !~ \"^config.*\"\n| attr_ns !~ \"^admin.*\"\n| attr_ns !~ \".*\\\\$cmd.*\"\n| json ns=\"attr.ns\", app=\"attr.appName\", find=\"attr.command.find\", filter=\"attr.command.filter\", projection=\"attr.command.projection\", comment=\"attr.command.comment\", sort=\"attr.command.sort\", pipeline=\"attr.command.pipeline\"\n| line_format `{{ printf \"%-30s\" .ns }} {{ printf \"%-30s\" .app }} [Filter : {{ or .filter \"{}\" }}, Projection : {{ or .projection \"{}\" }}, Sort : {{ or .sort \"{}\" }}, Pipeline : {{ or .pipeline \"[]\" }}] {{ printf \"%-50s\" .comment }}`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Queries",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "P5B94F0EE9C97DD34"
+      },
+      "description": "Query log from mongod",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 3,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": false,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "pluginVersion": "12.2.0-17027759091",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "P5B94F0EE9C97DD34"
+          },
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "{job=~\"$job\", filename=~\"$file\"} |= ``",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Mongod Logs",
+      "type": "logs"
+    }
+  ],
+  "preload": false,
+  "refresh": "5s",
+  "schemaVersion": 41,
+  "tags": [
+    "mongo"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": [
+            "F",
+            "E",
+            "W",
+            "I",
+            "D1",
+            "D2",
+            "D3",
+            "D4",
+            "D5"
+          ],
+          "value": [
+            "F",
+            "E",
+            "W",
+            "I",
+            "D1",
+            "D2",
+            "D3",
+            "D4",
+            "D5"
+          ]
+        },
+        "includeAll": true,
+        "label": "Mongo Severity",
+        "multi": true,
+        "name": "mongo_severity",
+        "options": [
+          {
+            "selected": true,
+            "text": "F",
+            "value": "F"
+          },
+          {
+            "selected": true,
+            "text": "E",
+            "value": "E"
+          },
+          {
+            "selected": true,
+            "text": "W",
+            "value": "W"
+          },
+          {
+            "selected": true,
+            "text": "I",
+            "value": "I"
+          },
+          {
+            "selected": true,
+            "text": "D1",
+            "value": "D1"
+          },
+          {
+            "selected": true,
+            "text": "D2",
+            "value": "D2"
+          },
+          {
+            "selected": true,
+            "text": "D3",
+            "value": "D3"
+          },
+          {
+            "selected": true,
+            "text": "D4",
+            "value": "D4"
+          },
+          {
+            "selected": true,
+            "text": "D5",
+            "value": "D5"
+          }
+        ],
+        "query": "F, E, W, I, D1, D2, D3, D4, D5",
+        "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "externallogs",
+          "value": "externallogs"
+        },
+        "definition": "",
+        "description": "",
+        "includeAll": true,
+        "label": "Service Name",
+        "name": "job",
+        "options": [],
+        "query": {
+          "label": "service_name",
+          "refId": "LokiVariableQueryEditor-VariableQuery",
+          "stream": "",
+          "type": 1
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "/var/log/external_logs/consumer_redeem_point.log",
+          "value": "/var/log/external_logs/consumer_redeem_point.log"
+        },
+        "definition": "",
+        "includeAll": true,
+        "label": "File Name",
+        "name": "file",
+        "options": [],
+        "query": {
+          "label": "filename",
+          "refId": "LokiVariableQueryEditor-VariableQuery",
+          "stream": "{job=~\"$job\"}",
+          "type": 1
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Mongo Log",
+  "uid": "15e196a1-59e0-41d7-b3a2-7baf46bc8789",
+  "version": 24
+}
